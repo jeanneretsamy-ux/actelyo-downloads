@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-10-18T18:56:44.786Z",
+  "items": [
+    {
+      "id": "erp",
+      "name": "Actelyo ERP Desktop",
+      "category": "desktop",
+      "version": "1.4.0",
+      "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
+      "sourcePrivate": true,
+      "statusLabel": "Installateur en préparation"
+    },
+    {
+      "id": "law-harness",
+      "name": "Actelyo Law Harness Desktop",
+      "category": "desktop",
+      "version": "e86e627",
+      "description": "Cabinet juridique, Studio, REA et apprentissage des procédures.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo",
+      "buildUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/actions/runs/39151622153",
+      "note": "Build Windows vérifié e86e627. Le kit réunit automatiquement les trois parties de l’installateur. Aucun corpus privé inclus.",
+      "file": "Actelyo-Law-Harness-Setup-x64.exe",
+      "bytes": 2191623141,
+      "sha256": "8c7af9f802ad2929391e77609bb625d4f0ff9e48ec24d93dbecea3847adcd0ff",
+      "parts": [
+        {
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part01",
+          "bytes": 1000000000,
+          "sha256": "d3840266d12cd1947dd02c95f0ad5b1194b02dc88c42eec89a5ff9d355396ddc"
+        },
+        {
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part02",
+          "bytes": 1000000000,
+          "sha256": "760804623388a8c222fe2dd7c0ad0968522c3f2522226c44d935c861cffcbdaa"
+        },
+        {
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part03",
+          "bytes": 191623141,
+          "sha256": "ab293bfeb90b2963e2887fc6bcd5032aca20c32d1d349b6dd2cf4f3ef574128c"
+        }
+      ]
+    },
+    {
+      "id": "rag",
+      "name": "Actelyo RAG Desktop",
+      "category": "desktop",
+      "version": "1.0.1",
+      "description": "Votre bibliothèque documentaire, ses espaces et la recherche assistée sur votre poste.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
+      "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
+      "statusLabel": "Paquet desktop en préparation"
+    },
+    {
+      "id": "llm",
+      "name": "Actelyo LLM Desktop",
+      "category": "desktop",
+      "version": "1.0.0",
+      "description": "Moteur GGUF autonome, chargement des modèles, chat et API de rédaction et d’embeddings.",
+      "platform": "Windows x64 · CPU",
+      "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
+      "sourcePrivate": true,
+      "note": "Interface Actelyo et moteur llama.cpp. Le SDK ouvert LM Studio est conservé avec ses notices ; l’interface propriétaire LM Studio n’est pas incluse.",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v1.0.0/Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
+      "file": "Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
+      "bytes": 144885230,
+      "sha256": "20cecf9e5070f9aca18e1e37e917c076f350ecfd42eab315d491228383bb0013"
+    },
+    {
+      "id": "qwen-small",
+      "name": "Qwen3 0.6B · Q8",
+      "category": "model",
+      "version": "23749fefcc",
+      "description": "Petit modèle généraliste de rédaction pour tester votre moteur local.",
+      "platform": "GGUF",
+      "license": "apache-2.0",
+      "repo": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF",
+      "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
+      "file": "Qwen3-0.6B-Q8_0.gguf",
+      "bytes": 639446688,
+      "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
+    },
+    {
+      "id": "nomic-embeddings",
+      "name": "Nomic Embed Text v1.5 · Q4",
+      "category": "model",
+      "version": "0188c9bf40",
+      "description": "Embeddings locaux pour indexer et rechercher vos documents.",
+      "platform": "GGUF",
+      "license": "apache-2.0",
+      "repo": "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF",
+      "url": "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/0188c9bf409793f810680a5a431e7b899c46104c/nomic-embed-text-v1.5.Q4_K_M.gguf",
+      "file": "nomic-embed-text-v1.5.Q4_K_M.gguf",
+      "bytes": 84106624,
+      "sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
+    }
+  ],
+  "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1/Actelyo-Docker-Kit.zip",
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792349804825/Actelyo-Download-Kit.zip"
+}
