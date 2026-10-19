@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-19T01:20:44.266Z",
+  "revision": "2026-10-19T01:43:08.072Z",
   "items": [
     {
       "id": "erp",
@@ -56,7 +56,10 @@
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "statusLabel": "Paquet desktop en préparation"
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.1/Actelyo-RAG-Desktop-Setup-1.0.1-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.1-x64.exe",
+      "bytes": 505322360,
+      "sha256": "dfa5761724c61d8b0146b4f8c5128f898eefd4c7b2b3322ce7f37c15c2a46082"
     },
     {
       "id": "llm",
@@ -103,5 +106,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792372844266/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792374188072/Actelyo-Download-Kit.zip"
 }
