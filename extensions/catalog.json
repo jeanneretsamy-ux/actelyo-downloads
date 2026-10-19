@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "schemaVersion": 1,
+      "id": "actelyo.synthese-dossier",
+      "kind": "skill",
+      "name": "Synthèse de dossier",
+      "description": "Produire une synthèse structurée, sourcée et distinguant les faits établis des points à vérifier.",
+      "version": "1.0.0",
+      "author": "Actelyo",
+      "skills": [
+        {
+          "id": "synthese",
+          "name": "Synthèse de dossier",
+          "description": "Synthèse structurée avec références aux pièces.",
+          "instructions": "Rédige une synthèse du dossier à partir des seules pièces fournies. Structure : objet, parties, faits datés, chronologie, prétentions, pièces utiles, contradictions et informations manquantes. Cite chaque fait déterminant par le numéro de sa pièce. Distingue faits établis, déclarations des parties et hypothèses. N’invente ni date ni référence juridique. Termine par les points à vérifier."
+        }
+      ],
+      "servers": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "actelyo.relecture-acte",
+      "kind": "skill",
+      "name": "Relecture d’acte",
+      "description": "Repérer les incohérences, champs manquants et risques de rédaction sans altérer le document original.",
+      "version": "1.0.0",
+      "author": "Actelyo",
+      "skills": [
+        {
+          "id": "relecture",
+          "name": "Relecture d’acte",
+          "description": "Relecture de cohérence et liste de corrections proposées.",
+          "instructions": "Relis le projet fourni sans modifier ses faits. Vérifie la cohérence des noms, dates, montants, définitions, renvois et annexes. Signale les champs manquants. Pour chaque point, cite le passage, explique le problème et propose une correction distincte. N’invente pas de clause ni de référence légale. Présente la proposition pour validation humaine, sans envoyer ni signer aucun document."
+        }
+      ],
+      "servers": []
+    },
+    {
+      "schemaVersion": 1,
+      "id": "actelyo.outils-texte",
+      "kind": "mcp",
+      "name": "Outils texte Actelyo",
+      "description": "Serveur MCP local : statistiques de texte et empreinte SHA-256, sans lecture du disque ni accès réseau.",
+      "version": "1.0.0",
+      "author": "Actelyo",
+      "skills": [],
+      "servers": [
+        {
+          "id": "texte",
+          "name": "Outils texte Actelyo",
+          "transport": "builtin"
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "actelyo.redaction-cabinet",
+      "kind": "plugin",
+      "name": "Rédaction du cabinet",
+      "description": "Un plugin associant un skill de relecture et un serveur MCP local d’outils texte.",
+      "version": "1.0.0",
+      "author": "Actelyo",
+      "skills": [
+        {
+          "id": "controle",
+          "name": "Contrôle avant diffusion",
+          "description": "Contrôle des informations sensibles et du statut du projet.",
+          "instructions": "Avant de proposer la diffusion d’un projet, vérifie destinataires, noms, dates, montants, annexes, références de pièces et données personnelles. Signale toute ambiguïté sans la corriger silencieusement. Fournis une liste de vérifications à effectuer et conserve le statut de projet à valider. Ne procède à aucun envoi, signature ou publication."
+        }
+      ],
+      "servers": [
+        {
+          "id": "texte",
+          "name": "Outils texte du cabinet",
+          "transport": "builtin"
+        }
+      ]
+    }
+  ]
+}
