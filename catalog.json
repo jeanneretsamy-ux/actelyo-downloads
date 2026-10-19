@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-19T01:59:25.973Z",
+  "revision": "2026-10-19T02:29:31.789Z",
   "items": [
     {
       "id": "erp",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.4.2",
+      "version": "1.5.0",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.4.2/Actelyo-ERP-Desktop-Setup-1.4.2-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.4.2-x64.exe",
-      "bytes": 152669563,
-      "sha256": "8f2ad5c764a8c7d54a6ffdda25fe37b6c8f280324fdc7a38f2a9645825e54bec"
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.5.0/Actelyo-ERP-Desktop-Setup-1.5.0-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.5.0-x64.exe",
+      "bytes": 152672351,
+      "sha256": "d3d214b25357d9bf9c6dd8accf181c028b2757225e4b873cc4da91078bc00f4e"
     },
     {
       "id": "law-harness",
@@ -103,8 +103,20 @@
       "file": "nomic-embed-text-v1.5.Q4_K_M.gguf",
       "bytes": 84106624,
       "sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
+    },
+    {
+      "id": "rag-anything",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-anything-v1.0.0/Actelyo-RAG-Anything-Setup-1.0.0-x64.exe",
+      "file": "Actelyo-RAG-Anything-Setup-1.0.0-x64.exe",
+      "bytes": 56287874,
+      "sha256": "6a60cdef168a81ceaa16fc27fd1dbaed09aa36b5b5b5d8da073493d386a95dbd",
+      "name": "Actelyo RAG-Anything",
+      "category": "desktop",
+      "version": "1.0.0",
+      "sourceUrl": "https://github.com/HKUDS/RAG-Anything",
+      "note": "Moteur secondaire pour ERP 1.5.0 et suivants. Python inclus. Texte extrait des documents, sans OCR ni analyse d’images. Modèles de rédaction et d’embeddings locaux requis ; contexte de 8 192 tokens conseillé."
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792375165973/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792376971788/Actelyo-Download-Kit.zip"
 }
