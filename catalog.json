@@ -1,20 +1,21 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-19T02:30:15.443Z",
+  "revision": "2026-10-19T10:46:52.739Z",
   "items": [
     {
       "id": "erp",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.5.0/Actelyo-ERP-Desktop-Setup-1.5.0-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.5.0-x64.exe",
-      "bytes": 152672351,
-      "sha256": "d3d214b25357d9bf9c6dd8accf181c028b2757225e4b873cc4da91078bc00f4e"
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.6.0/Actelyo-ERP-Desktop-Setup-1.6.0-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.6.0-x64.exe",
+      "bytes": 152820298,
+      "sha256": "e9c912937d8fa7e507ef6226e231bea007bcfa8fce390eb4456e6146de96efc1",
+      "note": "Version Windows avec espaces Skills, Plugins et MCP separes, imports MD/ZIP/JSON, catalogues chargeables, permissions et audit local. RAG et redaction conserves."
     },
     {
       "id": "law-harness",
@@ -122,5 +123,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792377015443/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792406812739/Actelyo-Download-Kit.zip"
 }
