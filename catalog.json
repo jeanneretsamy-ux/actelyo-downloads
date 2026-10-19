@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-19T02:29:31.789Z",
+  "revision": "2026-10-19T02:30:15.443Z",
   "items": [
     {
       "id": "erp",
@@ -114,9 +114,13 @@
       "category": "desktop",
       "version": "1.0.0",
       "sourceUrl": "https://github.com/HKUDS/RAG-Anything",
-      "note": "Moteur secondaire pour ERP 1.5.0 et suivants. Python inclus. Texte extrait des documents, sans OCR ni analyse d’images. Modèles de rédaction et d’embeddings locaux requis ; contexte de 8 192 tokens conseillé."
+      "note": "Moteur secondaire pour ERP 1.5.0 et suivants. Python inclus. Texte extrait des documents, sans OCR ni analyse d’images. Modèles de rédaction et d’embeddings locaux requis ; contexte de 8 192 tokens conseillé.",
+      "description": "Moteur RAG secondaire integre a l’atelier Actelyo, avec index separe et modeles locaux.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP/tree/feat/desktop-suite-downloads/rag-anything",
+      "sourcePrivate": true
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792376971788/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792377015443/Actelyo-Download-Kit.zip"
 }
