@@ -1,5 +1,11 @@
 param([string]$Destination=(Join-Path $PSScriptRoot 'Paquets-Actelyo'))
 $ErrorActionPreference='Stop'
+function Get-ActelyoSha256([string]$File){
+ $stream=[IO.File]::OpenRead($File)
+ $hasher=[Security.Cryptography.SHA256]::Create()
+ try { return ([BitConverter]::ToString($hasher.ComputeHash($stream))).Replace('-','') }
+ finally { $hasher.Dispose(); $stream.Dispose() }
+}
 $catalog=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'catalog.json') -Raw | ConvertFrom-Json
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 $required=($catalog.items | Measure-Object -Property bytes -Sum).Sum
@@ -14,7 +20,7 @@ try {
   if(-not $item.url -and -not $item.parts){continue}
   if($item.file -ne [IO.Path]::GetFileName($item.file) -or $item.file -match '[:\\/]' -or $item.sha256 -notmatch '^[a-fA-F0-9]{64}$'){throw 'Entrée de catalogue invalide'}
   $target=Join-Path $Destination $item.file
-  if(Test-Path -LiteralPath $target){if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $item.sha256){throw ('Fichier différent déjà présent : '+$target)};continue}
+  if(Test-Path -LiteralPath $target){if((Get-ActelyoSha256 $target) -ne $item.sha256){throw ('Fichier différent déjà présent : '+$target)};continue}
   $partial=$target+'.'+[guid]::NewGuid().ToString('N')+'.part'
   $output=$null
   try {
@@ -34,7 +40,7 @@ try {
     }finally{$inputStream.Dispose();$partHash.Dispose()}
    }
    $output.Dispose();$output=$null
-   if((Get-Item -LiteralPath $partial).Length -ne $item.bytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $item.sha256){throw ('Empreinte incorrecte : '+$item.name)}
+   if((Get-Item -LiteralPath $partial).Length -ne $item.bytes -or (Get-ActelyoSha256 $partial) -ne $item.sha256){throw ('Empreinte incorrecte : '+$item.name)}
    Move-Item -LiteralPath $partial -Destination $target
   }finally{if($output){$output.Dispose()};if(Test-Path -LiteralPath $partial){Remove-Item -LiteralPath $partial -Force}}
  }
