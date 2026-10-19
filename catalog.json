@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-19T01:43:08.072Z",
+  "revision": "2026-10-19T01:44:36.776Z",
   "items": [
     {
       "id": "erp",
@@ -24,7 +24,7 @@
       "description": "Cabinet juridique, Studio, REA et apprentissage des procédures.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo",
-      "buildUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/actions/runs/39151622153",
+      "buildUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/actions/runs/39084466101",
       "note": "Build Windows vérifié e86e627. Le kit réunit automatiquement les trois parties de l’installateur. Aucun corpus privé inclus.",
       "file": "Actelyo-Law-Harness-Setup-x64.exe",
       "bytes": 2191623141,
@@ -106,5 +106,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792374188072/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792374276776/Actelyo-Download-Kit.zip"
 }
