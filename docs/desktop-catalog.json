@@ -67,7 +67,7 @@
       "platform": "Windows x64 · CPU",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
       "sourcePrivate": true,
-      "note": "Interface Actelyo et moteur llama.cpp. Le SDK ouvert LM Studio est conservé avec ses notices ; l’interface propriétaire LM Studio n’est pas incluse.",
+      "note": "Application Actelyo pour les modèles GGUF, avec moteur CPU intégré et connecteur LM Studio optionnel. Les licences des composants sont fournies avec l’application.",
       "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v1.0.0/Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
       "file": "Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
       "bytes": 144885230,
