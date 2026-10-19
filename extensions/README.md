@@ -50,6 +50,8 @@ Le catalogue initial contient deux skills de synthèse/relecture, un MCP d'outil
 
 Un catalogue contient `{ "schemaVersion": 1, "entries": [ ...manifestes... ] }`. La validation de toutes les entrées précède le chargement. Charger un catalogue ne déclenche aucune installation ni commande.
 
+Catalogue Actelyo public chargeable : https://raw.githubusercontent.com/jeanneretsamy-ux/actelyo-downloads/main/extensions/catalog.json
+
 ## Stockage et audit
 
 Registre : `%APPDATA%/Actelyo ERP/extensions/extensions.sqlite`. Ressources : `extensions/packages/<empreinte>/`. Ces fichiers sont séparés de `local-workspace/knowledge.sqlite`. Les anciens skills sont repris une seule fois dans le registre, avec leur état d'activation, sans supprimer les lignes d'origine. Les pièces et l'index RAG restent conservés.
@@ -61,3 +63,5 @@ Le journal couvre revue, installation, modification, restauration, activation, a
 Installer les dépendances du dépôt puis exécuter `npm run electron:build` sur Windows. Le SDK MCP et js-yaml sont des dépendances du projet. Le catalogue et le serveur intégré sont des fichiers versionnés sous `public/extensions/`, copiés dans `dist/extensions/` par Vite. Le client MCP et le registre sont compilés dans le processus principal Electron, sans Node dans le renderer.
 
 Les tests de livraison utilisent un profil isolé et des données fictives. Le test de transmission des consignes utilise une fixture HTTP de contrat ; il ne mesure pas la qualité d'un modèle. Les tests MCP exercent réellement les deux transports, l'initialisation, le catalogue et les appels ; les confirmations sont simulées uniquement dans le profil de test. Le profil installé du client n'est pas utilisé pour ces tests.
+
+Après construction, lancer `npm run test:desktop-extensions`. Si nécessaire, définir `ACTELYO_DESKTOP_EXECUTABLE` avec le chemin absolu de l'exécutable à tester. Le script crée son profil sous `playwright-report/` et conserve son rapport et ses captures sous `outputs/`.
