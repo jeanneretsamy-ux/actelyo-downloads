@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-18T18:56:44.786Z",
+  "revision": "2026-10-19T00:53:24.081Z",
   "items": [
     {
       "id": "erp",
@@ -11,7 +11,10 @@
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "statusLabel": "Installateur en préparation"
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.4.0/Actelyo-ERP-Desktop-Setup-1.4.0-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.4.0-x64.exe",
+      "bytes": 152669212,
+      "sha256": "51ed2ae2c24a5511d46fdaa507ef91832314c979739d03839149f276d872c313"
     },
     {
       "id": "law-harness",
@@ -99,6 +102,6 @@
       "sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
     }
   ],
-  "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792349804825/Actelyo-Download-Kit.zip"
+  "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792371204081/Actelyo-Download-Kit.zip"
 }
