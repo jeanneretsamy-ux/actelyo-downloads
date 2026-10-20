@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-20T14:11:52.207Z",
+  "revision": "2026-10-20T14:42:21.782Z",
   "items": [
     {
       "id": "erp",
@@ -9,7 +9,7 @@
       "version": "1.8.0",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
-      "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
+      "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop",
       "sourcePrivate": true,
       "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.0/Actelyo-ERP-Desktop-Setup-1.8.0-x64.exe",
       "file": "Actelyo-ERP-Desktop-Setup-1.8.0-x64.exe",
@@ -118,10 +118,10 @@
       "note": "Moteur secondaire pour ERP 1.5.0 et suivants. Python inclus. Texte extrait des documents, sans OCR ni analyse d’images. Modèles de rédaction et d’embeddings locaux requis ; contexte de 8 192 tokens conseillé.",
       "description": "Moteur RAG secondaire integre a l’atelier Actelyo, avec index separe et modeles locaux.",
       "platform": "Windows x64",
-      "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP/tree/feat/desktop-suite-downloads/rag-anything",
+      "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop/tree/main/rag-anything",
       "sourcePrivate": true
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792505512207/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792507341782/Actelyo-Download-Kit.zip"
 }
