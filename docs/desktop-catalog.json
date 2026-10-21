@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-20T14:42:21.782Z",
+  "revision": "2026-10-21T18:30:55.588Z",
   "items": [
     {
       "id": "erp",
@@ -52,15 +52,16 @@
       "id": "rag",
       "name": "Actelyo RAG Desktop",
       "category": "desktop",
-      "version": "1.0.1",
-      "description": "Votre bibliothèque documentaire, ses espaces et la recherche assistée sur votre poste.",
+      "version": "1.0.2",
+      "description": "Bibliothèque documentaire locale, recherche assistée et préparation de corpus juridiques structurés.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.1/Actelyo-RAG-Desktop-Setup-1.0.1-x64.exe",
-      "file": "Actelyo-RAG-Desktop-Setup-1.0.1-x64.exe",
-      "bytes": 505322360,
-      "sha256": "dfa5761724c61d8b0146b4f8c5128f898eefd4c7b2b3322ce7f37c15c2a46082"
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.2/Actelyo-RAG-Desktop-Setup-1.0.2-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.2-x64.exe",
+      "bytes": 490163811,
+      "sha256": "8bb5a6d2435899ec68593e1b358456bd81a713d8b28f2363f10385dad8fac128",
+      "note": "Import juridique local par article depuis le menu : citations, pages, textes FR/EN/AR et séparation des articles déclarés abrogés. Évaluation locale Recall@k et MRR incluse. Aucun corpus ni modèle fourni."
     },
     {
       "id": "llm",
