@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-21T18:30:55.588Z",
+  "revision": "2026-10-25T15:29:31.992Z",
   "items": [
     {
       "id": "erp",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.8.0",
+      "version": "1.8.1",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.0/Actelyo-ERP-Desktop-Setup-1.8.0-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.8.0-x64.exe",
-      "bytes": 152967984,
-      "sha256": "f03de57909a31f05ba8544988a883c972e2a14305194c975580ff0a51bcd983c",
-      "note": "Version Windows avec espaces Skills, Plugins et MCP separes, imports MD/ZIP/JSON, catalogues chargeables, permissions et audit local. RAG et redaction conserves."
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe",
+      "bytes": 153539764,
+      "sha256": "b329893a6f24587a48ed2057b243fd9d0fe48540de4cc33044317ea50b8fd15d",
+      "note": "Version corrective 1.8.1 : application, executable Windows et installateur alignes ; remplacement des fichiers applicatifs lors des mises a jour. Installation neuve et mise a jour depuis 1.8.0 verifiees."
     },
     {
       "id": "law-harness",
@@ -124,5 +124,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-suite-1792507341782/Actelyo-Download-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-Download-Kit-1.8.1.zip"
 }
