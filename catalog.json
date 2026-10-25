@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-25T15:29:31.992Z",
+  "revision": "2026-10-25T15:59:23.397Z",
   "items": [
     {
       "id": "erp",
@@ -67,16 +67,16 @@
       "id": "llm",
       "name": "Actelyo LLM Desktop",
       "category": "desktop",
-      "version": "1.0.0",
-      "description": "Moteur GGUF autonome, chargement des modèles, chat et API de rédaction et d’embeddings.",
+      "version": "3.0.1",
+      "description": "Studio LLM local Actelyo, catalogue Hugging Face et Agent Projets.",
       "platform": "Windows x64 · CPU",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
       "sourcePrivate": true,
-      "note": "Application Actelyo pour les modèles GGUF, avec moteur CPU intégré et connecteur LM Studio optionnel. Les licences des composants sont fournies avec l’application.",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v1.0.0/Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
-      "file": "Actelyo-LLM-Desktop-Setup-1.0.0-x64.exe",
-      "bytes": 144885230,
-      "sha256": "20cecf9e5070f9aca18e1e37e917c076f350ecfd42eab315d491228383bb0013"
+      "note": "Logo Actelyo, recherche et telechargement GGUF Hugging Face verifies, bibliotheque, conversations et Agent Projets avec confirmation. Moteurs CPU et Vulkan inclus. Sans modele ni donnees personnelles.",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe",
+      "file": "Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe",
+      "bytes": 216998574,
+      "sha256": "ad5395d47524189b184ba8df80a22fef9f4f5605cd028945627bfab3a041bbf7"
     },
     {
       "id": "qwen-small",
@@ -124,5 +124,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-Download-Kit-1.8.1.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-Download-Kit-LLM-3.0.1.zip"
 }
