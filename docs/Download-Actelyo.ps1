@@ -1,4 +1,4 @@
-param([string]$Destination=(Join-Path $PSScriptRoot 'Paquets-Actelyo'))
+﻿param([string]$Destination=(Join-Path $PSScriptRoot 'Paquets-Actelyo'),[switch]$UseBundledCatalog,[switch]$ListOnly)
 $ErrorActionPreference='Stop'
 function Get-ActelyoSha256([string]$File){
  $stream=[IO.File]::OpenRead($File)
@@ -7,6 +7,20 @@ function Get-ActelyoSha256([string]$File){
  finally { $hasher.Dispose(); $stream.Dispose() }
 }
 $catalog=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'catalog.json') -Raw | ConvertFrom-Json
+if(-not $UseBundledCatalog){
+ try {
+  $latest=Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/jeanneretsamy-ux/actelyo-downloads/main/catalog.json' -TimeoutSec 20
+  if($latest.schemaVersion -ne 1 -or -not $latest.items){throw 'Catalogue distant invalide'}
+  $selected=@(foreach($selectedItem in $catalog.items){
+   $matches=@($latest.items | Where-Object { $_.id -eq $selectedItem.id })
+   if($matches.Count -ne 1){throw ('Version actuelle introuvable pour '+$selectedItem.id)}
+   $matches[0]
+  })
+  $catalog.items=$selected
+  Write-Host 'Catalogue actualisé : les dernières versions publiées seront proposées.'
+ } catch { throw ('Impossible de vérifier les dernières versions. Réessayez avec Internet, ou utilisez -UseBundledCatalog pour choisir explicitement les versions du kit. '+$_.Exception.Message) }
+}
+if($ListOnly){$catalog.items | Select-Object id,name,version,file;return}
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 $required=($catalog.items | Measure-Object -Property bytes -Sum).Sum
 $resolved=(Resolve-Path -LiteralPath $Destination).Path
