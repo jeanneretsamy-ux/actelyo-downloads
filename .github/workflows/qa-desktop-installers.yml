@@ -1,0 +1,49 @@
+name: QA desktop installers
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-desktop-installers]
+    paths: ['.github/qa/**', '.github/workflows/qa-desktop-installers.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  qa:
+    name: ${{ matrix.id }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: erp
+            pattern: 'Actelyo ERP*'
+            sha256: b329893a6f24587a48ed2057b243fd9d0fe48540de4cc33044317ea50b8fd15d
+            urls: https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe
+          - id: llm-studio
+            pattern: 'Actelyo LLM*'
+            sha256: ad5395d47524189b184ba8df80a22fef9f4f5605cd028945627bfab3a041bbf7
+            urls: https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe
+          - id: rag
+            pattern: 'Actelyo RAG*'
+            sha256: 8bb5a6d2435899ec68593e1b358456bd81a713d8b28f2363f10385dad8fac128
+            urls: https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.2/Actelyo-RAG-Desktop-Setup-1.0.2-x64.exe
+          - id: law-harness
+            pattern: 'Actelyo Law*'
+            sha256: 8c7af9f802ad2929391e77609bb625d4f0ff9e48ec24d93dbecea3847adcd0ff
+            urls: https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part01;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part02;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part03
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/qa
+      - name: Install, launch and uninstall ${{ matrix.id }}
+        shell: pwsh
+        run: ./.github/qa/qa-installer.ps1 -Id '${{ matrix.id }}' -Urls '${{ matrix.urls }}' -Sha256 '${{ matrix.sha256 }}' -NamePattern '${{ matrix.pattern }}' -LaunchSeconds 90
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: qa-${{ matrix.id }}
+          path: qa-out/${{ matrix.id }}
+          retention-days: 14
