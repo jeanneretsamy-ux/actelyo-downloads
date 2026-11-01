@@ -1,0 +1,74 @@
+name: Rebrand desktop installers with product logos
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/actelyo-logos]
+    paths: ['.github/rebrand/**', '.github/branding/**', '.github/workflows/rebrand-installers.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rebrand:
+    name: ${{ matrix.id }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: erp
+            tag: desktop-erp-v1.8.2
+            title: Actelyo ERP Desktop 1.8.2
+            version: 1.8.2
+            pattern: 'Actelyo ERP*'
+            app: Actelyo ERP Desktop
+            exe: Actelyo ERP.exe
+            dir: Actelyo ERP Desktop
+            shortcut: Actelyo ERP Desktop
+            output: Actelyo-ERP-Desktop-Setup-1.8.2-x64
+            icon: .github/branding/actelyo-erp.ico
+            sha256: b329893a6f24587a48ed2057b243fd9d0fe48540de4cc33044317ea50b8fd15d
+            urls: https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe
+          - id: law-harness
+            tag: desktop-law-v2026.11.1
+            title: Actelyo Law Harness 2026.11.1
+            version: 2026.11.1
+            pattern: 'Actelyo Law*'
+            app: Actelyo Law Harness
+            exe: Actelyo Law Harness.exe
+            dir: ActelyoLawHarness
+            shortcut: Actelyo Law Harness
+            output: Actelyo-Law-Harness-Setup-2026.11.1-x64
+            icon: .github/branding/actelyo-law.ico
+            sha256: 8c7af9f802ad2929391e77609bb625d4f0ff9e48ec24d93dbecea3847adcd0ff
+            urls: https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part01;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part02;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part03
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+      - name: Repackage ${{ matrix.id }} with its logo and QA the result
+        shell: pwsh
+        run: >
+          ./.github/rebrand/rebrand.ps1 -Id '${{ matrix.id }}' -Urls '${{ matrix.urls }}' -Sha256 '${{ matrix.sha256 }}'
+          -NamePattern '${{ matrix.pattern }}' -AppName '${{ matrix.app }}' -ExeName '${{ matrix.exe }}' -DirName '${{ matrix.dir }}'
+          -ShortcutName '${{ matrix.shortcut }}' -Version '${{ matrix.version }}' -OutputBase '${{ matrix.output }}' -Icon '${{ matrix.icon }}'
+      - name: Upload proof (screenshots, icons, report) to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "qa-proof-${{ matrix.id }}-${{ github.run_id }}"
+          $files = @(Get-ChildItem "out/${{ matrix.id }}/proof" -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
+          if ($files) { gh release create $tag @files --draft --title "QA proof ${{ matrix.id }} (${{ github.run_id }})" --notes 'Preuves QA automatiques.' --target ${{ github.sha }} }
+      - name: Publish installer as a draft release (made public after review)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem "out/${{ matrix.id }}" -File | Where-Object { $_.Name -like '*.exe' -or $_.Name -like '*.part*' -or $_.Name -eq 'SHA256SUMS.txt' } | ForEach-Object FullName)
+          gh release view '${{ matrix.tag }}' 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload '${{ matrix.tag }}' @files --clobber }
+          else { gh release create '${{ matrix.tag }}' @files --draft --title '${{ matrix.title }}' --notes "Logo ${{ matrix.app }} sur l'exécutable, l'installateur et les raccourcis. Met à jour la version précédente sans toucher aux données. SHA-256 $env:SETUP_SHA256 ($env:SETUP_BYTES octets)." --target ${{ github.sha }} }
