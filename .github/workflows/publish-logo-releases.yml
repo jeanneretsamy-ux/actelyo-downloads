@@ -1,0 +1,34 @@
+name: Publish logo installer releases
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/actelyo-logos]
+    paths: ['.github/workflows/publish-logo-releases.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Make the four reviewed draft releases public
+        run: |
+          set -euo pipefail
+          for tag in desktop-erp-v1.8.2 desktop-llm-v3.0.2 desktop-rag-v1.0.3 desktop-law-v2026.11.1; do
+            gh release edit "$tag" --draft=false --latest=false
+            gh release view "$tag" --json tagName,isDraft,assets --jq '"\(.tagName) draft=\(.isDraft) assets=\([.assets[].name]|join(","))"'
+          done
+      - name: Check every catalog download URL answers
+        run: |
+          set -euo pipefail
+          for u in \
+            https://github.com/${GH_REPO}/releases/download/desktop-erp-v1.8.2/Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe \
+            https://github.com/${GH_REPO}/releases/download/desktop-llm-v3.0.2/Actelyo-LLM-Desktop-Setup-3.0.2-x64.exe \
+            https://github.com/${GH_REPO}/releases/download/desktop-rag-v1.0.3/Actelyo-RAG-Desktop-Setup-1.0.3-x64.exe \
+            https://github.com/${GH_REPO}/releases/download/desktop-law-v2026.11.1/Actelyo-Law-Harness-Setup-2026.11.1-x64.exe.part01 \
+            https://github.com/${GH_REPO}/releases/download/desktop-law-v2026.11.1/Actelyo-Law-Harness-Setup-2026.11.1-x64.exe.part02 \
+            https://github.com/${GH_REPO}/releases/download/desktop-law-v2026.11.1/Actelyo-Law-Harness-Setup-2026.11.1-x64.exe.part03; do
+            code=$(curl -sIL -o /dev/null -w '%{http_code}' "$u"); echo "$code $u"; [ "$code" = 200 ]
+          done

@@ -1,0 +1,76 @@
+name: Publish LLM Studio and RAG installers with product logos
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/actelyo-logos]
+    paths: ['.github/workflows/publish-llm-rag-logos.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  rebrand:
+    name: ${{ matrix.id }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Public, verified 3.0.1 build + red LLM Studio logo (same AppId: upgrades 3.0.1 in place).
+          - id: llm-studio
+            tag: desktop-llm-v3.0.2
+            title: Actelyo LLM Studio 3.0.2
+            version: 3.0.2
+            pattern: 'Actelyo LLM*'
+            app: Actelyo LLM Desktop
+            exe: Actelyo LLM.exe
+            dir: Actelyo LLM Desktop
+            shortcut: Actelyo LLM Desktop
+            output: Actelyo-LLM-Desktop-Setup-3.0.2-x64
+            icon: .github/branding/actelyo-llm.ico
+            sha256: ad5395d47524189b184ba8df80a22fef9f4f5605cd028945627bfab3a041bbf7
+            urls: https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe
+          # RAG 1.0.3 built from anything-llmACTELYO master (cyan logo already in the source build).
+          - id: rag
+            tag: desktop-rag-v1.0.3
+            title: Actelyo RAG Desktop 1.0.3
+            version: 1.0.3
+            pattern: 'Actelyo RAG Desktop*'
+            app: Actelyo RAG Desktop
+            exe: Actelyo RAG.exe
+            dir: Actelyo RAG Desktop
+            shortcut: Actelyo RAG Desktop
+            output: Actelyo-RAG-Desktop-Setup-1.0.3-x64
+            icon: .github/branding/actelyo-rag.ico
+            sha256: 5778027ba0e17730a007cb6201af420702611900db1e8b7f3bc3407440e457b0
+            urls: https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.3/Actelyo-RAG-Desktop-Setup-1.0.3-x64.exe
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+      - name: Package ${{ matrix.id }} with its logo and QA the result
+        shell: pwsh
+        run: >
+          ./.github/rebrand/rebrand.ps1 -Id '${{ matrix.id }}' -Urls '${{ matrix.urls }}' -Sha256 '${{ matrix.sha256 }}'
+          -NamePattern '${{ matrix.pattern }}' -AppName '${{ matrix.app }}' -ExeName '${{ matrix.exe }}' -DirName '${{ matrix.dir }}'
+          -ShortcutName '${{ matrix.shortcut }}' -Version '${{ matrix.version }}' -OutputBase '${{ matrix.output }}' -Icon '${{ matrix.icon }}'
+      - name: Upload proof (screenshots, icons, report) to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "qa-proof-${{ matrix.id }}-${{ github.run_id }}"
+          $files = @(Get-ChildItem "out/${{ matrix.id }}/proof" -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
+          if ($files) { gh release create $tag @files --draft --title "QA proof ${{ matrix.id }} (${{ github.run_id }})" --notes 'Preuves QA automatiques.' --target ${{ github.sha }} }
+      - name: Publish installer as a draft release (made public after review)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem "out/${{ matrix.id }}" -File | Where-Object { $_.Name -like '*.exe' -or $_.Name -like '*.part*' -or $_.Name -eq 'SHA256SUMS.txt' } | ForEach-Object FullName)
+          gh release view '${{ matrix.tag }}' 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload '${{ matrix.tag }}' @files --clobber }
+          else { gh release create '${{ matrix.tag }}' @files --draft --title '${{ matrix.title }}' --notes "Logo ${{ matrix.app }} sur l'exécutable, l'installateur et les raccourcis. Met à jour la version précédente sans toucher aux données. SHA-256 $env:SETUP_SHA256 ($env:SETUP_BYTES octets)." --target ${{ github.sha }} }
