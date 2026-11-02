@@ -1,0 +1,90 @@
+name: Publish Actelyo OpenBousic installer
+# The OpenBousic sources and builds live in a private repository, so the verified
+# installer is carried here in < 100 MB parts, reassembled, re-tested on Windows
+# and published as a public download.
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/openbousic-release]
+    paths: ['.github/incoming/openbousic/**', '.github/workflows/publish-openbousic.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  TAG: desktop-openbousic-v2.0.161
+  FILE: Actelyo-OpenBousic-Setup-2.0.161-x64.exe
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+      - name: Reassemble and verify the installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = '.github/incoming/openbousic'
+          New-Item -ItemType Directory -Force out | Out-Null
+          $setup = Join-Path (Resolve-Path out) $env:FILE
+          $fs = [IO.File]::Create($setup)
+          Get-ChildItem $dir -Filter "$env:FILE.part*" | Sort-Object Name | ForEach-Object { $in = [IO.File]::OpenRead($_.FullName); $in.CopyTo($fs); $in.Dispose() }
+          $fs.Dispose()
+          $expected = ((Get-Content "$dir/SHA256SUMS.txt") -split '\s+')[0]
+          $actual = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
+          Copy-Item "$dir/SHA256SUMS.txt" out/
+          "SETUP=$setup" >> $env:GITHUB_ENV
+          "SHA=$actual" >> $env:GITHUB_ENV
+      - name: QA on Windows (install, server, window, logo, uninstall)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+          New-Item -ItemType Directory -Force proof | Out-Null
+          $p = Start-Process $env:SETUP -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait -PassThru
+          if ($p.ExitCode) { throw "installer exit $($p.ExitCode)" }
+          $e = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -like 'Actelyo OpenBousic*' | Select-Object -First 1
+          if (-not $e) { throw 'not registered' }
+          $dir = $e.InstallLocation.TrimEnd('\'); $exe = Join-Path $dir 'Actelyo OpenBousic.exe'
+          if (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Actelyo OpenBousic.lnk'))) { throw 'desktop shortcut missing' }
+          [System.Drawing.Icon]::ExtractAssociatedIcon($exe).ToBitmap().Save("$PWD/proof/app-icon.png")
+          $proc = Start-Process $exe -WorkingDirectory $dir -PassThru
+          $health = 0
+          for ($i = 0; $i -lt 60 -and $health -ne 200; $i++) { Start-Sleep 2; try { $health = (Invoke-WebRequest 'http://127.0.0.1:10369/api/health' -UseBasicParsing -TimeoutSec 3).StatusCode } catch { } }
+          if ($health -ne 200) { throw "server health $health" }
+          Start-Sleep 20
+          $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+          $bmp.Save("$PWD/proof/app-running.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $titles = @(Get-Process | Where-Object { try { $_.Path -and $_.Path.StartsWith($dir, 'OrdinalIgnoreCase') } catch { $false } } | Where-Object MainWindowTitle | ForEach-Object MainWindowTitle)
+          if (-not $titles) { throw 'no application window' }
+          Write-Host "Window: $($titles -join ' | ')  health=$health  version=$($e.DisplayVersion)"
+          Get-Process | Where-Object { try { $_.Path -and $_.Path.StartsWith($dir, 'OrdinalIgnoreCase') } catch { $false } } | Stop-Process -Force
+          Start-Sleep 5
+          Start-Process ($e.UninstallString -replace '"', '') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          Start-Sleep 5
+          if (Test-Path $exe) { throw 'uninstall left the application behind' }
+      - name: Upload proof to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem proof -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
+          if ($files) { gh release create "qa-proof-openbousic-${{ github.run_id }}" @files --draft --title "QA proof OpenBousic (${{ github.run_id }})" --notes 'Preuves QA automatiques.' --target ${{ github.sha }} }
+      - name: Publish the public release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:TAG 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload $env:TAG $env:SETUP out/SHA256SUMS.txt --clobber }
+          else { gh release create $env:TAG $env:SETUP out/SHA256SUMS.txt --latest=false --title 'Actelyo OpenBousic 2.0.161' --notes "Assistant de développement autonome pour modèles locaux, en application de bureau Windows x64 avec le logo Actelyo OpenBousic (jaune). Serveur local et interface intégrés, Node.js inclus ; un serveur de modèle compatible OpenAI (Ollama, llama.cpp, vLLM…) reste à configurer. Démarre en mode sécurisé (accessible uniquement depuis ce PC). SHA-256 $env:SHA" --target ${{ github.sha }} }
+          $code = (Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/$env:TAG/$env:FILE" -Method Head -MaximumRedirection 5 -UseBasicParsing).StatusCode
+          if ($code -ne 200) { throw "public download answered $code" }
+          Write-Host "Public download OK"
