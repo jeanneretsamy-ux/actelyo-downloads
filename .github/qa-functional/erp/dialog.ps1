@@ -9,6 +9,14 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms, System.Drawing
+Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public static class QaWin {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+}
+'@
 $AE = [System.Windows.Automation.AutomationElement]
 $TS = [System.Windows.Automation.TreeScope]
 $CT = [System.Windows.Automation.ControlType]
@@ -47,24 +55,41 @@ function Find-NameEdit($dlg) {
   $edits = $dlg.FindAll($TS::Descendants, (New-Object $PC ($AE::ControlTypeProperty, $CT::Edit)))
   foreach ($e in $edits) { if ($e.Current.Name -match '^(File name|Folder|Dossier|Nom du fichier)') { Write-Host ("EDIT via name '" + $e.Current.Name + "'"); return $e } }
   foreach ($e in $edits) { if (@('1148', '1001', '1152') -contains $e.Current.AutomationId) { Write-Host ('EDIT via id ' + $e.Current.AutomationId); return $e } }
-  foreach ($e in $edits) { Write-Host ("EDIT? name='" + $e.Current.Name + "' id=" + $e.Current.AutomationId) }
+  # 3. Raw view (some IFileDialog hosts are hidden from the control view).
+  $walker = [System.Windows.Automation.TreeWalker]::RawViewWalker
+  $stack = New-Object System.Collections.Stack; $stack.Push($dlg); $n = 0
+  while ($stack.Count -gt 0 -and $n -lt 3000) {
+    $el = $stack.Pop(); $n++
+    try {
+      if ($el.Current.ControlType -eq $CT::Edit -and ($el.Current.Name -match '^(File name|Folder|Dossier|Nom du fichier)' -or @('1148','1001','1152') -contains $el.Current.AutomationId)) { Write-Host ("EDIT via raw view '" + $el.Current.Name + "'"); return $el }
+      $c = $walker.GetFirstChild($el); while ($c) { $stack.Push($c); $c = $walker.GetNextSibling($c) }
+    } catch {}
+  }
   return $null
 }
 function Is-Open { try { $null = $dlg.Current.Name; return (-not $dlg.Current.IsOffscreen) } catch { return $false } }
+function Focus-Dialog {
+  try { $h = [IntPtr]$dlg.Current.NativeWindowHandle; [QaWin]::ShowWindow($h, 5) | Out-Null; [QaWin]::SetForegroundWindow($h) | Out-Null; Start-Sleep -Milliseconds 300; return ([QaWin]::GetForegroundWindow() -eq $h) } catch { return $false }
+}
 function Cancel-Dialog {
   try {
-    $cancel = $dlg.FindFirst($TS::Descendants, (New-Object $PC ($AE::AutomationIdProperty, '2')))
+    $cancel = $null
+    foreach ($b in $dlg.FindAll($TS::Descendants, (New-Object $PC ($AE::ControlTypeProperty, $CT::Button)))) { if ($b.Current.Name -match '^(Cancel|Annuler)$' -or $b.Current.AutomationId -eq '2') { $cancel = $b; break } }
     if ($cancel) { $cancel.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Write-Output 'CANCELLED' }
-    else { $dlg.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ESC}'); Write-Output 'CANCELLED (Esc)' }
   } catch { Write-Output ('CANCEL_ERR ' + $_.Exception.Message) }
   Start-Sleep -Milliseconds 800
-  if (Is-Open) { try { $dlg.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ESC}') } catch {} }
+  if (Is-Open) { Focus-Dialog | Out-Null; [System.Windows.Forms.SendKeys]::SendWait('{ESC}'); Write-Output 'CANCELLED (Esc)'; Start-Sleep -Milliseconds 800 }
+  if (Is-Open) { try { $dlg.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close(); Write-Output 'CLOSED (WindowPattern)' } catch { Write-Output ('CLOSE_ERR ' + $_.Exception.Message) } }
 }
 function Fail([string]$why, [int]$code) { Write-Output $why; Cancel-Dialog; exit $code }
 function Press-Default {
-  $btn = $dlg.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.AndCondition (
+  $btn = $null
+  foreach ($b in $dlg.FindAll($TS::Descendants, (New-Object $PC ($AE::ControlTypeProperty, $CT::Button)))) {
+    if ($b.Current.Name -match '^(Select Folder|Open|Save|Ouvrir|Enregistrer|S.lectionner)') { $btn = $b; break }
+  }
+  if (-not $btn) { $btn = $dlg.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.AndCondition (
     (New-Object $PC ($AE::ControlTypeProperty, $CT::Button)),
-    (New-Object $PC ($AE::AutomationIdProperty, '1')))))
+    (New-Object $PC ($AE::AutomationIdProperty, '1'))))) }
   if ($btn) {
     Write-Host ("PRESS '" + $btn.Current.Name + "'")
     $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
@@ -77,7 +102,7 @@ while ((Get-Date) -lt $deadline) { $dlg = Find-Dialog; if ($dlg) { break }; Star
 if (-not $dlg) { Write-Output 'NO_DIALOG'; exit 2 }
 Write-Output ("DIALOG title='" + $dlg.Current.Name + "' pid=" + $dlg.Current.ProcessId)
 Start-Sleep -Milliseconds 1000
-try { $dlg.SetFocus() } catch {}
+Focus-Dialog | Out-Null
 
 $edit = $null
 $editBy = (Get-Date).AddSeconds(8)
@@ -94,7 +119,8 @@ if ($edit) {
 if (-not $typed) {
   # Fallback: type into the focused field (the name box has focus by default), as a user would.
   try {
-    if ($edit) { $edit.SetFocus() } else { $dlg.SetFocus() }
+    $fg = Focus-Dialog; Write-Output ('FOREGROUND ' + $fg)
+    if ($edit) { try { $edit.SetFocus() } catch {} }
     $focused = $AE::FocusedElement
     Write-Output ("FOCUSED name='" + $focused.Current.Name + "' type=" + $focused.Current.ControlType.ProgrammaticName)
     $escaped = ($Path -replace '([+^%~(){}\[\]])', '{$1}')
