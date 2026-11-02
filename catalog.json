@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-02T17:00:00.000Z",
+  "revision": "2026-11-02T21:30:00.000Z",
   "items": [
     {
       "id": "erp",
@@ -66,16 +66,16 @@
       "id": "llm",
       "name": "Actelyo LLM Studio",
       "category": "desktop",
-      "version": "3.0.2",
+      "version": "3.0.3",
       "description": "Studio LLM local Actelyo, catalogue Hugging Face et Agent Projets.",
       "platform": "Windows x64 · CPU",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
       "sourcePrivate": true,
-      "note": "Logo Actelyo LLM Studio (rouge) sur l’exécutable, l’installateur et les raccourcis. Application 3.0.1 vérifiée (studio, catalogue Hugging Face, Agent Projets), met à jour la 3.0.1 sur place sans toucher aux données.",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.2/Actelyo-LLM-Desktop-Setup-3.0.2-x64.exe",
-      "file": "Actelyo-LLM-Desktop-Setup-3.0.2-x64.exe",
-      "bytes": 217487651,
-      "sha256": "cca421dac180a52db72a2fb1a5ea9ed952702bd707cefe3317ff10504aaa7ba4"
+      "note": "Logo Actelyo LLM Studio (rouge) sur l’exécutable, l’installateur et les raccourcis. Construite depuis les sources 3.0.3 : le test matériel fonctionne avec les modèles à raisonnement (Qwen3…), et la version est la même partout (Windows, application, /health). Met à jour la 3.0.2 sur place sans toucher aux données.",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.3/Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
+      "file": "Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
+      "bytes": 192804085,
+      "sha256": "904290a09bd873d4f57efdbe5c0baa7d673c36bc727a0bd9d2fd9a770429ab8d"
     },
     {
       "id": "openbousic",
