@@ -15,6 +15,8 @@ public static class QaWin {
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
 }
 '@
 $AE = [System.Windows.Automation.AutomationElement]
@@ -67,7 +69,8 @@ function Find-NameEdit($dlg) {
   }
   return $null
 }
-function Is-Open { try { $null = $dlg.Current.Name; return (-not $dlg.Current.IsOffscreen) } catch { return $false } }
+# Cached UIA elements can outlive their window; ask Win32 about the handle instead.
+function Is-Open { $h = [IntPtr]$script:dlgHandle; return ([QaWin]::IsWindow($h) -and [QaWin]::IsWindowVisible($h)) }
 function Focus-Dialog {
   try { $h = [IntPtr]$dlg.Current.NativeWindowHandle; [QaWin]::ShowWindow($h, 5) | Out-Null; [QaWin]::SetForegroundWindow($h) | Out-Null; Start-Sleep -Milliseconds 300; return ([QaWin]::GetForegroundWindow() -eq $h) } catch { return $false }
 }
@@ -100,7 +103,8 @@ $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $dlg = $null
 while ((Get-Date) -lt $deadline) { $dlg = Find-Dialog; if ($dlg) { break }; Start-Sleep -Milliseconds 400 }
 if (-not $dlg) { Write-Output 'NO_DIALOG'; exit 2 }
-Write-Output ("DIALOG title='" + $dlg.Current.Name + "' pid=" + $dlg.Current.ProcessId)
+$script:dlgHandle = $dlg.Current.NativeWindowHandle
+Write-Output ("DIALOG title='" + $dlg.Current.Name + "' pid=" + $dlg.Current.ProcessId + " hwnd=" + $script:dlgHandle)
 Start-Sleep -Milliseconds 1000
 Focus-Dialog | Out-Null
 
