@@ -35,6 +35,17 @@ def shot(shots, name):
         return None
 
 
+def as_spec(w):
+    """Turn a wrapper into a WindowSpecification so child_window() works."""
+    try:
+        h = w.handle
+        if h:
+            return Desktop(backend="uia").window(handle=h)
+    except Exception:  # noqa: BLE001
+        pass
+    return w
+
+
 def find_window(title, timeout=30, exact=True):
     deadline = time.time() + timeout
     desk = Desktop(backend="uia")
@@ -43,13 +54,13 @@ def find_window(title, timeout=30, exact=True):
             for w in desk.windows():
                 t = w.window_text()
                 if (t == title) if exact else (title in t):
-                    return w
+                    return as_spec(w)
                 # Dialogs owned by the Electron window are exposed as its children.
                 if w.window_text() == "Actelyo RAG":
                     for c in w.children(control_type="Window"):
                         ct = c.window_text()
                         if (ct == title) if exact else (title in ct):
-                            return c
+                            return as_spec(c)
         except Exception:  # noqa: BLE001
             pass
         time.sleep(0.5)
@@ -252,6 +263,13 @@ def legal_import(args):
     return res
 
 
+def maximize(args):
+    win = main_window()
+    win.maximize()
+    time.sleep(1)
+    return {"ok": True, "screens": [shot(args.shots, args.name)]}
+
+
 def screenshot(args):
     return {"ok": True, "screens": [shot(args.shots, args.name)]}
 
@@ -267,7 +285,7 @@ def main():
     p.add_argument("--name", default="desktop.png")
     args = p.parse_args()
     try:
-        res = {"legal-import": legal_import, "screenshot": screenshot}[args.cmd](args)
+        res = {"legal-import": legal_import, "screenshot": screenshot, "maximize": maximize}[args.cmd](args)
     except Exception as exc:  # noqa: BLE001
         res = dict(RES)
         res.update({"ok": False, "error": f"{type(exc).__name__}: {exc}", "trace": traceback.format_exc()})

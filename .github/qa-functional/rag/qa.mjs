@@ -94,11 +94,8 @@ async function connect() {
   if (!page || !page.url().startsWith('http')) throw new Error('App page (http://127.0.0.1:PORT) never loaded; still on splash');
   origin = new URL(page.url()).origin;
   page.setDefaultTimeout(30000);
-  try {
-    const cdp = await page.context().newCDPSession(page);
-    const { windowId } = await cdp.send('Browser.getWindowForTarget');
-    await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } });
-  } catch (e) { log('maximize via CDP failed', e.message); }
+  const mx = spawnSync('python', [path.join(process.env.QA_HELPERS, 'native.py'), 'maximize', '--shots', SHOTS, '--name', '00-desktop-maximized.png'], { encoding: 'utf8', timeout: 90000 });
+  log('maximize:', (mx.stdout || '').slice(0, 200), (mx.stderr || '').slice(-300));
   await page.waitForLoadState('domcontentloaded');
   await sleep(4000);
   return browser;
