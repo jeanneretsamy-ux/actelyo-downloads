@@ -51,16 +51,16 @@
       "id": "rag",
       "name": "Actelyo RAG Desktop",
       "category": "desktop",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "Bibliothèque documentaire locale, recherche assistée et préparation de corpus juridiques structurés.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.3/Actelyo-RAG-Desktop-Setup-1.0.3-x64.exe",
-      "file": "Actelyo-RAG-Desktop-Setup-1.0.3-x64.exe",
-      "bytes": 488336201,
-      "sha256": "f2b1d80d32157622bc1c4dc331de00a8beb7f1166215cc9d3c7310434941633b",
-      "note": "Logo Actelyo RAG (cyan) sur l’exécutable, la fenêtre, l’installateur et les raccourcis. Import juridique local par article, évaluation Recall@k et MRR. Aucun corpus ni modèle fourni."
+      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.4/Actelyo-RAG-Desktop-Setup-1.0.4-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.4-x64.exe",
+      "bytes": 490523134,
+      "sha256": "83ea7d61e9ee6b52bca7c7e913007d515d220ff0fbf2620124e20d1dd1121094",
+      "note": "Logo Actelyo RAG (cyan) intégré. Corrige le chemin API de l’évaluation Recall@k/MRR sur Desktop. Aucun corpus ni modèle fourni."
     },
     {
       "id": "llm",
