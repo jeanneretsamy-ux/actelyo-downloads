@@ -27,14 +27,16 @@ jobs:
           Set-Location $env:QA_NODE_DIR
           '{"name":"qa-node","private":true}' | Set-Content package.json
           npm install --no-audit --no-fund playwright-core@1.62.1
-      - name: Install app, verify downloads, start llama-server
+      - name: Install app, download and verify llama.cpp and model
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./.github/qa-functional/law/setup.ps1 -Out $env:QA_OUT
-      - name: Functional QA (Playwright over Electron)
+      - name: Start llama-server and run functional QA (Playwright over Electron)
         shell: pwsh
-        run: node ./.github/qa-functional/law/qa-law.mjs $env:ACTELYO_INSTALLED $env:QA_OUT http://127.0.0.1:8080/v1
+        run: |
+          ./.github/qa-functional/law/start-llama.ps1 -Out $env:QA_OUT
+          node ./.github/qa-functional/law/qa-law.mjs $env:ACTELYO_INSTALLED $env:QA_OUT http://127.0.0.1:8080/v1
       - name: Collect logs
         if: always()
         shell: pwsh
@@ -52,5 +54,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $files = @(Get-ChildItem $env:QA_OUT -File | Where-Object { $_.Extension -in '.png', '.json', '.log', '.zip', '.txt', '.yaml' } | ForEach-Object FullName)
+          $files = @(Get-ChildItem $env:QA_OUT -File | Where-Object { $_.Length -gt 0 -and $_.Extension -in '.png', '.json', '.log', '.zip', '.txt', '.yaml' } | ForEach-Object FullName)
           if ($files) { gh release create "qa-func-law-${{ github.run_id }}" @files --draft --target $env:GITHUB_SHA --title "QA functional Law Harness ${{ github.run_id }}" --notes 'Preuves QA fonctionnelle (brouillon, ne pas publier).' }

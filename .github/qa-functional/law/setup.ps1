@@ -3,7 +3,7 @@
 param(
   [Parameter(Mandatory)] [string] $Out,
   [string] $LlamaTag = 'b6500',
-  [string] $LlamaSha256 = '',
+  [string] $LlamaSha256 = '73e00267e852e666a6fce2c3fb7a2603dd1934a37259f3f45c2c1b6983fa605a',
   [int] $Port = 8080
 )
 $ErrorActionPreference = 'Stop'
@@ -58,38 +58,6 @@ $facts.modelSha256 = $mh
 if ($mh -ne $qwen.sha256.ToLowerInvariant()) { throw "model sha256 mismatch: $mh" }
 Save-Facts
 
-# --- Start llama-server (64K context: Hermes refuses windows below 64,000 tokens)
-$help = (& $server.FullName --help 2>&1 | Out-String)
-$llamaArgs = @('-m', $model, '--host', '127.0.0.1', '--port', "$Port", '-c', '65536', '-np', '1', '--jinja',
-  '--alias', 'qwen3-0.6b', '-t', "$([Environment]::ProcessorCount)", '--no-webui')
-if ($help -notmatch '--no-webui') { $llamaArgs = $llamaArgs | Where-Object { $_ -ne '--no-webui' } }
-if ($help -match '--reasoning-budget') { $llamaArgs += @('--reasoning-budget', '0') }
-if ($help -match 'flash-attn[^\r\n]*(on\|off|\[on)') { $llamaArgs += @('-fa', 'on', '-ctk', 'q8_0', '-ctv', 'q8_0') }
-$facts.llamaArgs = ($llamaArgs -join ' ')
-Write-Host "llama-server $($facts.llamaArgs)"
-$p = Start-Process $server.FullName -ArgumentList $llamaArgs -PassThru -WindowStyle Hidden `
-  -RedirectStandardOutput (Join-Path $Out 'llama-server.out.log') -RedirectStandardError (Join-Path $Out 'llama-server.log')
-$facts.llamaPid = $p.Id
-$ready = $false
-for ($i = 0; $i -lt 120; $i++) {
-  Start-Sleep 2
-  if ($p.HasExited) { throw "llama-server exited: $($p.ExitCode)" }
-  try { $h = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 3; if ($h.status -eq 'ok') { $ready = $true; break } } catch {}
-}
-if (-not $ready) { throw 'llama-server not healthy' }
-$facts.models = (Invoke-RestMethod "http://127.0.0.1:$Port/v1/models").data | ForEach-Object id
-$props = Invoke-RestMethod "http://127.0.0.1:$Port/props"
-$facts.serverNctx = $props.default_generation_settings.n_ctx
-$body = @{ model = 'qwen3-0.6b'; max_tokens = 64; temperature = 0
-  messages = @(@{ role = 'user'; content = 'In one short sentence, what is a contract?' }) } | ConvertTo-Json -Depth 5
-$t0 = Get-Date
-$r = Invoke-RestMethod "http://127.0.0.1:$Port/v1/chat/completions" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 300
-$facts.directReply = $r.choices[0].message.content
-$facts.directReplySeconds = [int]((Get-Date) - $t0).TotalSeconds
-Write-Host "direct reply: $($facts.directReply)"
-Save-Facts
-if (-not "$($facts.directReply)".Trim()) { throw 'llama-server returned an empty reply' }
-
 # --- Install the app (parts -> concatenate -> verify -> silent install)
 $installer = Join-Path $work $law.file
 $fs = [IO.File]::Create($installer)
@@ -120,4 +88,5 @@ $facts.installed = $dir
 $facts.displayVersion = $entry.DisplayVersion
 Save-Facts
 "ACTELYO_INSTALLED=$dir" >> $env:GITHUB_ENV
-"LLAMA_PID=$($p.Id)" >> $env:GITHUB_ENV
+"LLAMA_SERVER=$($server.FullName)" >> $env:GITHUB_ENV
+"QA_MODEL=$model" >> $env:GITHUB_ENV
