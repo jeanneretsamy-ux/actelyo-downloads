@@ -5,6 +5,7 @@ the Windows common file dialogs and the message boxes. Prints one JSON object
 on stdout. Every step takes a full-desktop screenshot.
 """
 import argparse
+import io
 import json
 import os
 import sys
@@ -85,29 +86,34 @@ def main_window():
     return win
 
 
-def open_menu_item(win, top, item):
-    """Open top-level menu `top` and click `item`, via UIA then keyboard fallback."""
+def open_menu_item(win, top, index):
+    """Open top-level menu `top` (Electron views menu bar) and choose its entry number `index` (1-based)."""
+    rect = win.rectangle()
+    target = None
     try:
-        bar_item = win.child_window(title=top, control_type="MenuItem", found_index=0)
-        bar_item.click_input()
-        time.sleep(1.0)
-        entry = Desktop(backend="uia").window(control_type="Menu", found_index=0).child_window(
-            title=item, control_type="MenuItem")
-        if not entry.exists(timeout=3):
-            entry = win.child_window(title=item, control_type="MenuItem", found_index=0)
-        entry.click_input()
-        log(f"menu via UIA: {top} -> {item}")
-        return "uia"
+        for el in win.descendants():
+            info = el.element_info
+            r = info.rectangle
+            if info.name == top and info.control_type in ("MenuItem", "Button", "MenuBar", "Text") \
+                    and r.top > rect.top + 15 and r.top < rect.top + 90 and (r.bottom - r.top) < 40:
+                target = el
+                LOG.append(f"menu target [{info.control_type}] {info.name!r} {r}")
+                break
     except Exception as exc:  # noqa: BLE001
-        log(f"menu via UIA failed ({exc}); trying keyboard F10")
-        win.set_focus()
-        keyboard.send_keys("{ESC}{ESC}")
-        time.sleep(0.3)
-        keyboard.send_keys("{F10}")
-        time.sleep(0.5)
-        keyboard.send_keys("{DOWN}")
-        time.sleep(0.8)
-        return "keyboard"
+        log(f"descendants scan failed: {exc}")
+    if target is not None:
+        target.click_input()
+        mode = "uia-click"
+    else:
+        # Fallback: the menu bar label sits just under the title bar, left aligned.
+        from pywinauto import mouse
+        x, y = max(rect.left, 0) + 36, max(rect.top, 0) + 35
+        mouse.click(coords=(x, y))
+        mode = f"coords-click({x},{y})"
+    time.sleep(1.2)
+    keyboard.send_keys("{DOWN}" * index)
+    time.sleep(0.4)
+    return mode
 
 
 def fill_file_dialog(dlg, value, shots, shotname):
@@ -162,8 +168,12 @@ def texts_of(win):
     return vals
 
 
+RES = {}
+
+
 def legal_import(args):
-    res = {"ok": False, "screens": []}
+    res = RES
+    res.update({"ok": False, "screens": []})
     os.makedirs(args.outparent, exist_ok=True)
     win = main_window()
     try:
@@ -173,14 +183,23 @@ def legal_import(args):
     time.sleep(1)
     res["screens"].append(shot(args.shots, "40-legal-before-menu.png"))
     res["menuTree"] = dump_tree(win, 2)
-    mode = open_menu_item(win, "Actelyo RAG", "Préparer un corpus juridique…")
-    res["menuMode"] = mode
-    time.sleep(1)
-    res["screens"].append(shot(args.shots, "41-legal-menu-open.png"))
-    if mode == "keyboard":
-        # Submenu open with first entry highlighted; the import is the second entry.
-        keyboard.send_keys("{DOWN}{ENTER}")
-    dlg = find_window("Choisir un corpus juridique JSON autorisé", timeout=30)
+    dlg = None
+    for attempt in range(3):
+        mode = open_menu_item(win, "Actelyo RAG", 2)  # entry 2 = "Préparer un corpus juridique…"
+        res["menuMode"] = mode
+        res["screens"].append(shot(args.shots, f"41-legal-menu-open-{attempt}.png"))
+        keyboard.send_keys("{ENTER}")
+        try:
+            dlg = find_window("Choisir un corpus juridique JSON autorisé", timeout=15)
+            break
+        except TimeoutError:
+            log(f"file dialog not shown after attempt {attempt}")
+            keyboard.send_keys("{ESC}{ESC}")
+            time.sleep(1)
+            if attempt == 0:
+                res["windowTree"] = dump_tree(win, 4)[:300]
+    if dlg is None:
+        raise TimeoutError("file dialog never opened from the menu")
     res["screens"].append(shot(args.shots, "42-legal-file-dialog.png"))
     fill_file_dialog(dlg, args.json, args.shots, "43-legal-file-chosen.png")
     if not wait_closed(dlg):
@@ -238,6 +257,8 @@ def screenshot(args):
 
 
 def main():
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
     p = argparse.ArgumentParser()
     p.add_argument("cmd")
     p.add_argument("--json")
@@ -248,7 +269,8 @@ def main():
     try:
         res = {"legal-import": legal_import, "screenshot": screenshot}[args.cmd](args)
     except Exception as exc:  # noqa: BLE001
-        res = {"ok": False, "error": f"{type(exc).__name__}: {exc}", "trace": traceback.format_exc()}
+        res = dict(RES)
+        res.update({"ok": False, "error": f"{type(exc).__name__}: {exc}", "trace": traceback.format_exc()})
         try:
             shot(args.shots, f"{args.cmd}-error.png")
             keyboard.send_keys("{ESC}")

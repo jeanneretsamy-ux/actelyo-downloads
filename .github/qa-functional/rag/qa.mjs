@@ -94,6 +94,11 @@ async function connect() {
   if (!page || !page.url().startsWith('http')) throw new Error('App page (http://127.0.0.1:PORT) never loaded; still on splash');
   origin = new URL(page.url()).origin;
   page.setDefaultTimeout(30000);
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    const { windowId } = await cdp.send('Browser.getWindowForTarget');
+    await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } });
+  } catch (e) { log('maximize via CDP failed', e.message); }
   await page.waitForLoadState('domcontentloaded');
   await sleep(4000);
   return browser;
@@ -142,10 +147,17 @@ async function uploadAndEmbed(rec, slug, files, prefix) {
   rec.screenshots.push(await shot(`${prefix}-uploaded`));
   for (const t of titles) {
     const row = page.locator('tr', { hasText: t.slice(0, 18) }).first();
-    const cb = row.locator('[role="checkbox"]');
-    if (await cb.count()) await cb.first().click(); else await row.click();
-    await sleep(300);
+    await row.scrollIntoViewIfNeeded().catch(() => {});
+    await row.getByText(t.slice(0, 18)).first().click();
+    await sleep(400);
+    const checked = await row.locator('input[type="checkbox"], [role="checkbox"]').first()
+      .evaluate((el) => el.checked === true || el.getAttribute('aria-checked') === 'true').catch(() => null);
+    if (checked === false) {
+      await row.locator('input[type="checkbox"], [role="checkbox"]').first().click({ force: true });
+      await sleep(400);
+    }
   }
+  await dumpDom(`${prefix}-selected`);
   rec.screenshots.push(await shot(`${prefix}-selected`));
   await page.getByRole('button', { name: /move to workspace/i }).first().click();
   await sleep(1500);
@@ -248,8 +260,10 @@ async function main() {
     await sleep(2500);
     await dismissPopups();
     rec.screenshots.push(await shot('embedder-page'));
-    await page.getByText('AnythingLLM Embedder', { exact: true }).first().click();
-    await page.locator('input[name="embedder-search"]').fill('Generic');
+    await page.getByText(/^(AnythingLLM|Actelyo RAG) Embedder$/).first().click();
+    await sleep(800);
+    const search = page.locator('input[name="embedder-search"], input[placeholder*="embedding provider" i]');
+    if (await search.count()) await search.first().fill('Generic');
     await page.getByText('Generic OpenAI', { exact: true }).first().click();
     await page.locator('input[name="EmbeddingBasePath"]').fill(EMB_BASE);
     await page.locator('input[name="EmbeddingModelPref"]').fill(EMB_MODEL);
@@ -283,49 +297,87 @@ async function main() {
     await uploadAndEmbed(rec, slug, [DOC], 'doc');
   });
 
-  await step('S05', 'Ask a question in chat; answer uses the fact and shows a citation', async (rec) => {
-    if (!slug) throw new Error('no workspace');
+  const Q = 'Quel est le montant du dépôt de garantie prévu par le bail commercial QX-7429 ?';
+  async function ask(rec, label) {
     await page.goto(`${origin}/workspace/${slug}`);
     await sleep(2500);
     await dismissPopups();
-    const q = 'Quel est le montant du dépôt de garantie prévu par le bail commercial QX-7429 ?';
-    rec.details.question = q;
+    const health = {};
+    for (const [k, u] of [['llm', LLM_BASE], ['emb', EMB_BASE]]) {
+      try { health[k] = (await fetch(u.replace(/\/v1$/, '/health'), { signal: AbortSignal.timeout(5000) })).status; } catch (e) { health[k] = 'DOWN ' + e.message; }
+    }
     const input = page.locator('#primary-prompt-input');
     await input.waitFor();
-    await input.fill(q);
-    rec.screenshots.push(await shot('chat-question'));
+    await input.fill(Q);
+    rec.screenshots.push(await shot(`chat-${label}-question`));
     await input.press('Enter');
     const t0 = Date.now();
-    let last = null;
-    while (Date.now() - t0 < 360000) {
-      const h = (await api(`/api/workspace/${slug}/chats`)).json?.history || [];
-      last = [...h].reverse().find((m) => m.role === 'assistant');
-      if (last && (last.content || '').length) break;
+    let last = null; let uiError = null;
+    while (Date.now() - t0 < 300000) {
       await sleep(3000);
+      const m = new URL(page.url()).pathname.match(/\/workspace\/[^/]+\/t\/([^/]+)/);
+      const ep = m ? `/api/workspace/${slug}/thread/${m[1]}/chats` : `/api/workspace/${slug}/chats`;
+      const h = (await api(ep)).json?.history || [];
+      last = [...h].reverse().find((x) => x.role === 'assistant');
+      if (last && (last.content || '').length) break;
+      const body = await page.evaluate(() => document.body.innerText).catch(() => '');
+      const e = body.match(/Could not respond to message\.?\s*\n?([^\n]*)/);
+      if (e) { uiError = e[0].replace(/\s+/g, ' ').trim(); break; }
     }
-    rec.details.answerSeconds = Math.round((Date.now() - t0) / 1000);
     await sleep(2500);
-    rec.screenshots.push(await shot('chat-answer'));
-    await dumpDom('S05-chat');
-    if (!last) throw new Error('no assistant answer recorded');
-    rec.details.answer = last.content;
-    rec.details.sources = (last.sources || []).map((s) => ({ title: s.title, score: s.score }));
-    const norm = (last.content || '').replace(/[\s  .,]/g, '');
-    rec.details.factFound = norm.includes('4817');
-    const refBtn = page.getByText(/\d+\s+references?|\d+\s+référence/i).last();
-    rec.details.citationButtonVisible = await refBtn.isVisible().catch(() => false);
-    if (rec.details.citationButtonVisible) {
-      await refBtn.click();
-      await sleep(1500);
-      rec.screenshots.push(await shot('chat-citations-open'));
-      const side = await page.evaluate(() => document.body.innerText);
-      rec.details.citationShowsDoc = side.includes('bail-commercial-QX7429');
+    const out = { label, health, seconds: Math.round((Date.now() - t0) / 1000), url: page.url(), uiError };
+    rec.screenshots.push(await shot(`chat-${label}-answer`));
+    await dumpDom(`S05-${label}`);
+    if (last) {
+      out.answer = last.content;
+      out.sources = (last.sources || []).map((x) => ({ title: x.title, score: x.score }));
+      out.factFound = (last.content || '').replace(/[\s  .,]/g, '').includes('4817');
+      const refBtn = page.getByText(/\d+\s+(references?|référence)/i).last();
+      out.citationButtonVisible = await refBtn.isVisible().catch(() => false);
+      if (out.citationButtonVisible) {
+        await refBtn.click();
+        await sleep(1500);
+        rec.screenshots.push(await shot(`chat-${label}-citations`));
+        out.citationShowsDoc = (await page.evaluate(() => document.body.innerText)).includes('bail-commercial-QX7429');
+      }
     }
-    const problems = [];
-    if (!rec.details.factFound) problems.push('answer does not contain 4 817');
-    if (!rec.details.sources.length) problems.push('no sources returned');
-    if (!rec.details.citationButtonVisible) problems.push('no citation button in UI');
-    if (problems.length) throw new Error(problems.join('; '));
+    return out;
+  }
+  await step('S05', 'Ask a question in chat; answer uses the fact and shows a citation', async (rec) => {
+    if (!slug) throw new Error('no workspace');
+    rec.details.question = Q;
+    const ws = (await api(`/api/workspace/${slug}`)).json?.workspace;
+    rec.details.defaultChatMode = ws?.chatMode;
+    const first = await ask(rec, `mode-${ws?.chatMode || 'default'}`);
+    rec.details.attempts = [first];
+    const ok = (r) => r.factFound && r.sources?.length && r.citationButtonVisible;
+    if (!ok(first)) {
+      // Retry with the workspace in "Query" mode (RAG only, no agent routing), set through the UI.
+      await page.goto(`${origin}/workspace/${slug}/settings/chat-settings`);
+      await sleep(2500);
+      rec.screenshots.push(await shot('chat-settings'));
+      let via = 'ui';
+      if (await clickIfVisible(page.getByRole('button', { name: /^query$/i }), 4000)) {
+        await sleep(500);
+        await clickIfVisible(page.getByRole('button', { name: /update workspace/i }), 4000);
+        await sleep(2000);
+      }
+      if ((await api(`/api/workspace/${slug}`)).json?.workspace?.chatMode !== 'query') {
+        via = 'api';
+        await api(`/api/workspace/${slug}/update`, { method: 'POST', body: JSON.stringify({ chatMode: 'query' }) });
+      }
+      rec.screenshots.push(await shot('chat-settings-query'));
+      const second = await ask(rec, 'mode-query');
+      second.modeSetVia = via;
+      rec.details.attempts.push(second);
+      if (ok(second)) {
+        rec.status = 'fail';
+        rec.error = `Default chat mode "${ws?.chatMode}" failed (${first.uiError || 'no fact/citation'}); works only after switching the workspace to Query mode.`;
+        return;
+      }
+    }
+    const last = rec.details.attempts.at(-1);
+    if (!ok(last)) throw new Error(`fact=${last.factFound} sources=${last.sources?.length} citationBtn=${last.citationButtonVisible} uiError=${last.uiError}`);
   });
 
   // ---- Legal import via native menu ----
@@ -339,7 +391,7 @@ async function main() {
     let res = {};
     try { res = JSON.parse((r.stdout || '').trim().split('\n').pop()); } catch { res = { ok: false, error: 'bad helper output', stdout: r.stdout }; }
     rec.screenshots.push(...(res.screens || []).filter(Boolean));
-    rec.details = { menuMode: res.menuMode, resultDialog: res.resultDialog, dialogTexts: res.dialogTexts, outputs: res.outputs, error: res.error, trace: res.trace, menuTree: res.menuTree };
+    rec.details = { menuMode: res.menuMode, resultDialog: res.resultDialog, dialogTexts: res.dialogTexts, outputs: res.outputs, error: res.error, trace: res.trace, menuTree: res.menuTree, windowTree: res.windowTree, log: res.log };
     rec.screenshots.push(await shot('legal-app-after'));
     manifest = res.manifest; outDir = res.outputDir;
     if (!res.ok) throw new Error(res.error || `legal import failed (dialog=${res.resultDialog})`);
