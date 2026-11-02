@@ -257,10 +257,11 @@ async function main() {
     await nav('hardware');
     if (loadedId) await page.selectOption('#benchmark-model', loadedId).catch(() => {});
     await page.click('#run-benchmark');
-    await page.waitForFunction(() => { const e = document.querySelector('#error'); return (!e.hidden && e.textContent) || document.querySelector('#benchmark-result').textContent.trim().length > 0; }, null, { timeout: 300000, polling: 500 });
+    await page.waitForSelector('#run-benchmark[disabled]', { timeout: 5000 }).catch(() => {});
+    await page.waitForSelector('#run-benchmark:not([disabled])', { timeout: 300000 });
     await sleep(500);
     const err = await uiError(); const result = await page.textContent('#benchmark-result');
-    if (err) throw Error('UI error: ' + err);
+    if (err) throw Error('UI error: ' + err + ' | result panel still shows: ' + result.slice(0, 200));
     return { result: result.slice(0, 800) };
   }, { required: false });
 

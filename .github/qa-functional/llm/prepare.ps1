@@ -36,14 +36,15 @@ $p = Start-Process $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/
 $p.WaitForExit()
 Check 'silent install exit code 0' ($p.ExitCode -eq 0) "exit=$($p.ExitCode)"
 $entry = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
-  Where-Object { $_.DisplayName -eq 'Actelyo LLM Desktop' } | Select-Object -First 1
-Check 'Apps & features entry "Actelyo LLM Desktop"' ($null -ne $entry) "$($entry.DisplayName) $($entry.DisplayVersion)"
-$exe = Join-Path $entry.InstallLocation 'Actelyo LLM.exe'
+  Where-Object { $_.DisplayName -like 'Actelyo LLM Desktop*' } | Select-Object -First 1
+Check 'Apps & features entry "Actelyo LLM Desktop*"' ($null -ne $entry) "$($entry.DisplayName) $($entry.DisplayVersion)"
+$installDir = if ($entry.InstallLocation) { $entry.InstallLocation } else { Join-Path $env:LOCALAPPDATA 'Programs\Actelyo LLM Desktop' }
+$exe = Join-Path $installDir 'Actelyo LLM.exe'
 Check 'Actelyo LLM.exe present' (Test-Path $exe) $exe
-$facts.installLocation = $entry.InstallLocation
+$facts.installLocation = $installDir; $facts.displayName = $entry.DisplayName
 $facts.displayVersion = $entry.DisplayVersion
 $facts.exeProductVersion = (Get-Item $exe).VersionInfo.ProductVersion
-$facts.bundledRuntimes = @(Get-ChildItem $entry.InstallLocation -Recurse -Filter llama-server.exe -ErrorAction SilentlyContinue | ForEach-Object FullName)
+$facts.bundledRuntimes = @(Get-ChildItem $installDir -Recurse -Filter llama-server.exe -ErrorAction SilentlyContinue | ForEach-Object FullName)
 
 $dl.WaitForExit()
 $mhash = (Get-FileHash $model -Algorithm SHA256).Hash.ToLower()
