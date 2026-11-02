@@ -108,7 +108,7 @@ async function main() {
   const dataDir = report.facts.initialStatus.dataDirectory;
 
   // ---------- 1. library ----------
-  await step('01a-import-gguf-dialog', 'Ma bibliothèque > Importer un GGUF (native Open dialog driven by UI Automation)', async s => {
+  await step('01a-import-gguf-dialog', 'Ma bibliothèque > Importer un GGUF (native Open dialog driven via Win32 messages)', async s => {
     await nav('models');
     await page.click('#import');
     const r = await pwsh('file-dialog.ps1', '-File', MODEL, '-Shot', path.join(OUT, String(++shotIndex).padStart(2, '0') + '-01a-open-dialog-desktop.png'));
@@ -201,11 +201,12 @@ async function main() {
 
   // ---------- 3. server + API ----------
   let base;
-  await step('03a-server-view', 'Serveur et API view shows the local endpoint', async () => {
+  await step('03a-server-view', 'Serveur et API view shows the local endpoint', async s => {
     await nav('connections');
     const url = (await page.textContent('#base-url')).trim();
     if (!/^http:\/\/127\.0\.0\.1:\d+\/v1$/.test(url)) throw Error('unexpected base url ' + url);
     base = url.replace(/\/v1$/, '');
+    await shot('03a-server-address', s);
     await page.locator('#api-example').scrollIntoViewIfNeeded();
     return { baseUrl: url, example: await page.textContent('#api-example') };
   });
