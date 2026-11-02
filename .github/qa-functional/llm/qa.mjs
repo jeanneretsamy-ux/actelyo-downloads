@@ -263,9 +263,24 @@ async function main() {
     await page.waitForSelector('#run-benchmark:not([disabled])', { timeout: 300000 });
     await sleep(500);
     const err = await uiError(); const result = await page.textContent('#benchmark-result');
-    if (err) throw Error('UI error: ' + err + ' | result panel still shows: ' + result.slice(0, 200));
-    return { result: result.slice(0, 800) };
-  }, { required: false });
+    if (err) throw Error('UI error: ' + err + ' | result panel shows: ' + result.slice(0, 300));
+    let r; try { r = JSON.parse(result); } catch { throw Error('result panel is not a JSON report: ' + result.slice(0, 300)); }
+    if (typeof r.content !== 'string' || !r.content.trim()) throw Error('benchmark report has empty content: ' + result.slice(0, 300));
+    return { content: r.content, backend: r.backend, seconds: r.seconds, tokens: r.tokens, tokensPerSecond: r.tokensPerSecond, model: r.model };
+  });
+
+  await step('04e-versions-consistent', 'Catalog version = Windows DisplayVersion = app footer = app.getVersion() = /health version', async () => {
+    const prep = JSON.parse(fs.readFileSync(path.join(OUT, 'prepare.json'), 'utf8').replace(/^\uFEFF/, ''));
+    const health = await (await fetch(base + '/health')).json();
+    const footer = (await page.textContent('.aside-bottom small')).trim();
+    const st = await status();
+    const v = { catalog: prep.facts.llm.version, displayVersion: prep.facts.displayVersion, displayName: prep.facts.displayName, exeProductVersion: prep.facts.exeProductVersion, footer, appGetVersion: st.version, health: health.version };
+    const want = v.catalog;
+    const bad = [['displayVersion', v.displayVersion], ['appGetVersion', v.appGetVersion], ['health', v.health]].filter(([, x]) => x !== want);
+    if (!footer.endsWith(want)) bad.push(['footer', footer]);
+    if (bad.length) throw Error('version mismatch vs catalog ' + want + ': ' + JSON.stringify(bad) + ' all=' + JSON.stringify(v));
+    return v;
+  });
 
   await step('04d-benchmark-repro-api', 'Repro of 04c through the API: same prompt and max_tokens=64 as the benchmark', async () => {
     const models = await (await fetch(base + '/v1/models')).json();
