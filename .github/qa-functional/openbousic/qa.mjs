@@ -161,7 +161,7 @@ async function main() {
   report.facts.appExe = APP_EXE
   // 0. Launch the installed app with a CDP port.
   await step('launch installed app (CDP)', async () => {
-    const child = spawn(APP_EXE, ['--remote-debugging-port=9222', ...RENDER_FLAGS], { detached: true, stdio: 'ignore', cwd: path.dirname(APP_EXE) })
+    const child = spawn(APP_EXE, ['--remote-debugging-port=9222', ...RENDER_FLAGS], { detached: true, stdio: 'ignore', cwd: path.dirname(APP_EXE), env: { ...process.env, ACTELYO_OPENBOUSIC_LOG_LEVEL: 'debug' } })
     child.unref()
     let browser = null
     const t0 = Date.now()

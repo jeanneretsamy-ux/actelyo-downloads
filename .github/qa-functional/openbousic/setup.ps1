@@ -107,6 +107,24 @@ $facts.baselineSeconds = [math]::Round($sw.Elapsed.TotalSeconds, 1)
 Write-Host "baseline reply ($($facts.baselineSeconds)s): $($facts.baselineReply)"
 (Invoke-RestMethod 'http://127.0.0.1:8080/v1/models') | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $out 'llama-models.json')
 
+# Diagnostic: the same request the app server makes, with the app's bundled Node.js
+$bundledNode = Join-Path $entry.InstallLocation 'resources\node\node.exe'
+$diag = Join-Path $work 'diag-fetch.mjs'
+@'
+for (const u of ['http://127.0.0.1:8080/v1/models', 'http://localhost:8080/v1/models']) {
+  for (const h of [{ 'Content-Type': 'application/json' }, {}]) {
+    try {
+      const r = await fetch(u, { method: 'GET', headers: h, signal: AbortSignal.timeout(10000) })
+      const t = await r.text()
+      console.log(u, JSON.stringify(h), r.status, t.slice(0, 200))
+    } catch (e) { console.log(u, JSON.stringify(h), 'ERR', e.message, e.cause?.message ?? '') }
+  }
+}
+console.log('node', process.version)
+'@ | Set-Content $diag -Encoding utf8
+& $bundledNode $diag *> (Join-Path $out 'diag-fetch.txt')
+Get-Content (Join-Path $out 'diag-fetch.txt')
+
 New-Item -ItemType Directory -Force -Path 'C:\qa-projects' | Out-Null
 $facts | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'setup-facts.json') -Encoding utf8
 "APP_EXE=$appExe" | Add-Content $env:GITHUB_ENV
