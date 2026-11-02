@@ -31,9 +31,9 @@ $produits = @(
                  "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part02",
                  "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part03")
      Sha256 = '3a0f43ac3152eb6fa785eb99f5a799010910d54c17e735d8f77f223ca1073ad1' },
-  @{ Nom = 'Actelyo OpenBousic';   Motif = '^Actelyo OpenBousic';  Version = '2.0.161'
-     Parties = @("$base/desktop-openbousic-v2.0.161/Actelyo-OpenBousic-Setup-2.0.161-x64.exe")
-     Sha256 = 'd30a0ffddbb0af3f90e54d2661b07d320b45c8c86e0a5b9bb487ef7ee4651607' }
+  @{ Nom = 'Actelyo OpenBousic';   Motif = '^Actelyo OpenBousic';  Version = '2.0.162'
+     Parties = @("$base/desktop-openbousic-v2.0.162/Actelyo-OpenBousic-Setup-2.0.162-x64.exe")
+     Sha256 = '4fefa3993b7995c475f69be31cb01f8587f9f2e0fbd81b98727ced7b82941e48' }
 )
 # Applications Actelyo à conserver même si elles ne sont pas dans la liste ci-dessus
 $aConserver = '^Actelyo RAG-Anything'

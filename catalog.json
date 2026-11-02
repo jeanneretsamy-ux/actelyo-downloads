@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-02T21:30:00.000Z",
+  "revision": "2026-11-02T23:35:23.922Z",
   "items": [
     {
       "id": "erp",
@@ -81,16 +81,16 @@
       "id": "openbousic",
       "name": "Actelyo OpenBousic",
       "category": "desktop",
-      "version": "2.0.161",
+      "version": "2.0.162",
       "description": "Assistant de développement autonome pour modèles locaux : planification, exécution, terminal, sessions et interface web.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/Actelyo-OpenBousic",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-openbousic-v2.0.161/Actelyo-OpenBousic-Setup-2.0.161-x64.exe",
-      "file": "Actelyo-OpenBousic-Setup-2.0.161-x64.exe",
-      "bytes": 259269213,
-      "sha256": "d30a0ffddbb0af3f90e54d2661b07d320b45c8c86e0a5b9bb487ef7ee4651607",
-      "note": "Logo Actelyo OpenBousic (jaune) sur l’exécutable, la fenêtre, la barre des tâches, l’installateur et les raccourcis. Serveur local et interface intégrés, Node.js inclus. Démarre en mode sécurisé (accessible uniquement depuis ce PC). Un serveur de modèle compatible OpenAI (Ollama, llama.cpp, vLLM…) reste à configurer."
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-openbousic-v2.0.162/Actelyo-OpenBousic-Setup-2.0.162-x64.exe",
+      "file": "Actelyo-OpenBousic-Setup-2.0.162-x64.exe",
+      "bytes": 259275465,
+      "sha256": "4fefa3993b7995c475f69be31cb01f8587f9f2e0fbd81b98727ced7b82941e48",
+      "note": "Application Windows avec logo jaune. Corrige la recherche de mises à jour Desktop (catalogue officiel, sans npm) et le calcul de vitesse des réponses utilisant des outils. Un serveur de modèle compatible OpenAI reste à configurer."
     },
     {
       "id": "qwen-small",
