@@ -35,7 +35,9 @@ jobs:
         shell: pwsh
         working-directory: .github/qa-functional/openbousic
         timeout-minutes: 60
-        run: node qa.mjs
+        run: |
+          ./start-llama.ps1 -Tag qa
+          node qa.mjs
       - name: Collect logs and publish draft proof release
         if: always()
         shell: pwsh

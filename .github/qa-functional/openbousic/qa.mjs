@@ -230,45 +230,6 @@ async function main() {
     return page.url()
   })
 
-  await step('diag: app server model listing (capture proxy on :8081)', async () => {
-    const http = await import('node:http')
-    const seen = []
-    const srv = http.createServer((req, res) => {
-      const rec = { port: 8081, method: req.method, url: req.url, headers: req.headers }
-      seen.push(rec)
-      const up = http.request({ host: '127.0.0.1', port: 8080, path: req.url, method: req.method, headers: req.headers }, (ur) => {
-        const chunks = []
-        ur.on('data', (c) => chunks.push(c))
-        ur.on('end', () => {
-          const buf = Buffer.concat(chunks)
-          rec.upstreamStatus = ur.statusCode
-          rec.upstreamHeaders = ur.headers
-          rec.upstreamBody = buf.toString('utf8').slice(0, 600)
-          res.writeHead(ur.statusCode, ur.headers)
-          res.end(buf)
-        })
-      })
-      up.on('error', (e) => { rec.upstreamError = String(e); res.writeHead(502); res.end(String(e)) })
-      req.pipe(up)
-    })
-    await new Promise((r) => srv.listen(8081, '127.0.0.1', r))
-    const canned = http.createServer((req, res) => {
-      seen.push({ port: 8082, method: req.method, url: req.url })
-      res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ object: 'list', data: [{ id: 'qwen3-0.6b', object: 'model', owned_by: 'llamacpp' }] }))
-    })
-    await new Promise((r) => canned.listen(8082, '127.0.0.1', r))
-    const results = {}
-    for (const q of ['url=http://127.0.0.1:8081&backend=llamacpp', 'url=http://127.0.0.1:8082&backend=llamacpp', 'url=http://127.0.0.1:8082']) {
-      results[q] = await api(`/api/providers/models?${q}`)
-    }
-    srv.close()
-    canned.close()
-    report.facts.diagModels = { results, seen }
-    fs.writeFileSync(path.join(OUT, '..', 'diag-models.json'), JSON.stringify({ results, seen }, null, 2))
-    return JSON.stringify(Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.status]))) + ` requests seen=${seen.length}`
-  }, { critical: false })
-
   await step('1b add provider (llama.cpp preset -> local llama-server)', async (rec) => {
     await page.getByTestId('onboarding-add-provider-button').click()
     await page.getByTestId('provider-modal-next').waitFor({ state: 'visible', timeout: 15000 })

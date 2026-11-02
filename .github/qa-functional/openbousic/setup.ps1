@@ -85,18 +85,10 @@ $facts.modelSha256 = Verify $modelPath $model.sha256 'model'
 # llama-server
 & $server.FullName --version *> (Join-Path $out 'llama-server-version.txt')
 & $server.FullName --help *> (Join-Path $out 'llama-server-help.txt')
-$llamaArgs = @('-m', "`"$modelPath`"", '--host', '127.0.0.1', '--port', '8080', '--jinja', '-c', '32768', '-np', '1',
-  '-t', '4', '--alias', 'qwen3-0.6b', '--chat-template-kwargs', '"{\"enable_thinking\":false}"')
-$facts.llamaArgs = ($llamaArgs -join ' ')
-$ls = Start-Process $server.FullName -ArgumentList $llamaArgs -PassThru -WindowStyle Hidden `
-  -RedirectStandardOutput (Join-Path $out 'llama-server.out.log') -RedirectStandardError (Join-Path $out 'llama-server.log')
-$ok = $false
-for ($i = 0; $i -lt 120; $i++) {
-  Start-Sleep 2
-  if ($ls.HasExited) { break }
-  try { $r = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:8080/health' -TimeoutSec 3; if ($r.StatusCode -eq 200) { $ok = $true; break } } catch {}
-}
-if (-not $ok) { Get-Content (Join-Path $out 'llama-server.log') -Tail 40; throw 'llama-server did not become healthy' }
+"QA_LLAMA_SERVER=$($server.FullName)" | Add-Content $env:GITHUB_ENV
+"QA_MODEL_PATH=$modelPath" | Add-Content $env:GITHUB_ENV
+$env:QA_LLAMA_SERVER = $server.FullName; $env:QA_MODEL_PATH = $modelPath
+& "$PSScriptRoot\start-llama.ps1" -Tag 'setup'
 
 # Baseline: the model answers directly over the OpenAI-compatible API
 $body = @{ model = 'qwen3-0.6b'; max_tokens = 64; messages = @(@{ role = 'user'; content = 'Say hello in one short sentence.' }) } | ConvertTo-Json -Depth 5
@@ -129,6 +121,7 @@ $dist = Join-Path $entry.InstallLocation 'resources\openbousic\dist'
 Get-ChildItem $dist -Recurse -Filter *.js | Select-String -Pattern 'Failed to fetch models|No models found at' -Context 40, 40 |
   Out-String -Width 400 | Set-Content (Join-Path $out 'dist-fetch-models.txt')
 New-Item -ItemType Directory -Force -Path 'C:\qa-projects' | Out-Null
+Get-Process llama-server -ErrorAction SilentlyContinue | Stop-Process -Force
 $facts | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'setup-facts.json') -Encoding utf8
 "APP_EXE=$appExe" | Add-Content $env:GITHUB_ENV
 "QA_OUT=$out" | Add-Content $env:GITHUB_ENV
