@@ -53,8 +53,9 @@ jobs:
           "nomic_sha=$($nomic.sha256)" >> $env:GITHUB_OUTPUT
           Write-Host "ERP $($erp.version) $($erp.url) parts=$([bool]$erp.parts)"
 
-      - name: Cache models and llama.cpp
-        uses: actions/cache@v4
+      - name: Restore models and llama.cpp cache
+        id: cache
+        uses: actions/cache/restore@v4
         with:
           path: C:\qa-cache
           key: qa-erp-${{ steps.cat.outputs.qwen_sha }}-${{ steps.cat.outputs.nomic_sha }}-${{ env.LLAMA_SHA256 }}
@@ -77,6 +78,13 @@ jobs:
           Get-Verified "https://github.com/ggml-org/llama.cpp/releases/download/$env:LLAMA_TAG/$env:LLAMA_ZIP" "C:\qa-cache\$env:LLAMA_ZIP" $env:LLAMA_SHA256
           Expand-Archive "C:\qa-cache\$env:LLAMA_ZIP" C:\llama -Force
           Get-ChildItem C:\llama -Filter llama-server.exe -Recurse | Select-Object -First 1 | ForEach-Object { "LLAMA_DIR=$($_.DirectoryName)" >> $env:GITHUB_ENV }
+
+      - name: Save models and llama.cpp cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\qa-cache
+          key: qa-erp-${{ steps.cat.outputs.qwen_sha }}-${{ steps.cat.outputs.nomic_sha }}-${{ env.LLAMA_SHA256 }}
 
       - name: Download, verify and install ERP silently
         run: |

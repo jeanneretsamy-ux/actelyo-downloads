@@ -41,8 +41,9 @@ function Find-Dialog {
 
 function Find-NameEdit($dlg) {
   $edits = $dlg.FindAll($TS::Descendants, (New-Object $PC ($AE::ControlTypeProperty, $CT::Edit)))
-  foreach ($e in $edits) { if ($e.Current.Name -match '^File name') { return $e } }
-  foreach ($e in $edits) { if (@('1148', '1001') -contains $e.Current.AutomationId) { return $e } }
+  foreach ($e in $edits) { if ($e.Current.Name -match '^(File name|Folder)') { return $e } }
+  foreach ($e in $edits) { if (@('1148', '1001', '1152') -contains $e.Current.AutomationId) { return $e } }
+  foreach ($e in $edits) { Write-Host ("EDIT? name='" + $e.Current.Name + "' id=" + $e.Current.AutomationId) }
   return $null
 }
 
@@ -65,28 +66,24 @@ $vp.SetValue($Path)
 Start-Sleep -Milliseconds 400
 Write-Output ("TYPED value='" + $vp.Current.Value + "'")
 Take-Shot $Shot
-$btn = $dlg.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.AndCondition (
-  (New-Object $PC ($AE::ControlTypeProperty, $CT::Button)),
-  (New-Object $PC ($AE::AutomationIdProperty, '1')))))
-if ($btn) {
-  Write-Output ("PRESS '" + $btn.Current.Name + "'")
-  $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-} else {
-  $edit.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-  Write-Output 'PRESS ENTER'
-}
-# Wait for the dialog to close; retry once with Enter if it is still open.
-$closeBy = (Get-Date).AddSeconds(15)
-$retried = $false
-while ((Get-Date) -lt $closeBy) {
-  Start-Sleep -Milliseconds 500
-  $still = $false
-  try { $null = $dlg.Current.Name; $still = -not $dlg.Current.IsOffscreen } catch { $still = $false }
-  if (-not $still) { Write-Output 'CLOSED'; exit 0 }
-  if (-not $retried -and (Get-Date) -gt $closeBy.AddSeconds(-8)) {
-    $retried = $true
-    try { $edit.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}'); Write-Output 'RETRY ENTER' } catch {}
+function Press-Default {
+  $btn = $dlg.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.AndCondition (
+    (New-Object $PC ($AE::ControlTypeProperty, $CT::Button)),
+    (New-Object $PC ($AE::AutomationIdProperty, '1')))))
+  if ($btn) {
+    Write-Host ("PRESS '" + $btn.Current.Name + "'")
+    $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+  } else {
+    $edit.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('{ENTER}'); Write-Host 'PRESS ENTER'
   }
+}
+function Is-Open { try { $null = $dlg.Current.Name; return (-not $dlg.Current.IsOffscreen) } catch { return $false } }
+# Folder pickers may first navigate into the typed folder: press the default
+# button again (a user would click "Select Folder" a second time).
+for ($attempt = 1; $attempt -le 4; $attempt++) {
+  try { Press-Default } catch { Write-Output ('PRESS_ERR ' + $_.Exception.Message) }
+  for ($i = 0; $i -lt 8; $i++) { Start-Sleep -Milliseconds 500; if (-not (Is-Open)) { Write-Output "CLOSED after $attempt press(es)"; exit 0 } }
+  if ($attempt -eq 2) { Take-Shot ($Shot -replace '\.png$', '-retry.png') }
 }
 Write-Output 'STILL_OPEN'
 # Leave no blocking dialog behind.

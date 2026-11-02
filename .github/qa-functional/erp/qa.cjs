@@ -205,7 +205,8 @@ async function makeDocx(file) {
 
 // ---------------------------------------------------------------- main
 (async () => {
-  const DOCX = path.join(FIX, 'bail-leroy-bernard.docx');
+  const DOCDIR = path.join(FIX, 'dossier-leroy'); fs.mkdirSync(DOCDIR, { recursive: true });
+  const DOCX = path.join(DOCDIR, 'bail-leroy-bernard.docx');
   const EXPORT = path.join(OUT, 'export-reponse-qa.docx');
   const QUESTION = 'Quel est le montant exact du loyer annuel dans le bail de Julie Leroy ?';
   const PROMPT = 'Crée le dossier Leroy contre Bernard pour notre cliente Julie Leroy, bail commercial, et pose une échéance de conclusions le 23/12/2026.';
@@ -317,7 +318,7 @@ async function makeDocx(file) {
     }
   });
 
-  await step('S3', 'Import a .docx into the dossier and index it (Documents → Espaces et pièces → Ajouter des fichiers)', async s => {
+  await step('S3', 'Import a .docx into the dossier and index it (Documents → Espaces et pièces → Indexer un dossier)', async s => {
     if (!dossier) throw new Error('no dossier');
     s.details.push('nav: ' + await clickNav('Documents', '/documents'));
     let picker = page.getByLabel('Pièces du dossier');
@@ -325,15 +326,15 @@ async function makeDocx(file) {
     await picker.waitFor({ timeout: 30000 });
     await picker.selectOption(dossier.id);
     await page.getByRole('button', { name: 'Espaces et pièces', exact: true }).click();
-    const add = page.getByRole('button', { name: 'Ajouter des fichiers', exact: true });
+    const add = page.getByRole('button', { name: 'Indexer un dossier', exact: true });
     await add.waitFor({ timeout: 30000 });
     await shot(s, 'S3-resources');
     await add.click();
-    let ok = await nativeDialog(s, DOCX, 'S3-open');
+    let ok = await nativeDialog(s, DOCDIR, 'S3-open');
     if (!ok && app) {
       report.notes.push('S3: native Open dialog could not be driven; dialog.showOpenDialog stubbed in main process (same IPC/ingest path).');
       await sleep(2000);
-      await app.evaluate(({ dialog }, f) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [f] }); }, DOCX);
+      await app.evaluate(({ dialog }, f) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [f] }); }, DOCDIR);
       await add.click(); ok = true; s.details.push('FALLBACK: stubbed showOpenDialog');
     }
     if (!ok) throw new Error('native dialog failed');
