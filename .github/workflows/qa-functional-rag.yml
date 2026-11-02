@@ -1,0 +1,186 @@
+name: QA functional - Actelyo RAG Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-functional-rag]
+    paths:
+      - '.github/workflows/qa-functional-rag.yml'
+      - '.github/qa-functional/rag/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qa-functional-rag
+  cancel-in-progress: true
+
+env:
+  LLAMA_TAG: b11700
+  LLAMA_ZIP_SHA256: 4e2af6b2b39691cd84267a02839596ed6653ea2dde5ee9cdbfeb4dd9677eecbb
+  PLAYWRIGHT_VERSION: 1.56.1
+  CACHE: C:\qa-cache
+  QA_OUT: C:\qa-out
+  QA_DATA: ${{ github.workspace }}\.github\qa-functional\rag\data
+  QA_HELPERS: ${{ github.workspace }}\.github\qa-functional\rag
+  QA_LLM_BASE: http://127.0.0.1:8080/v1
+  QA_EMB_BASE: http://127.0.0.1:8081/v1
+  QA_LLM_MODEL: qwen3-0.6b
+  QA_EMB_MODEL: nomic-embed-text
+
+jobs:
+  qa:
+    runs-on: windows-2025
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Read catalog (rag, qwen-small, nomic-embeddings)
+        id: cat
+        shell: pwsh
+        run: |
+          $c = Invoke-RestMethod 'https://raw.githubusercontent.com/jeanneretsamy-ux/actelyo-downloads/main/catalog.json'
+          foreach ($id in 'rag','qwen-small','nomic-embeddings') {
+            $i = $c.items | Where-Object id -eq $id
+            if (-not $i.url -or -not $i.sha256) { throw "catalog item $id lacks url/sha256" }
+            $k = $id -replace '-','_'
+            "${k}_url=$($i.url)" >> $env:GITHUB_OUTPUT
+            "${k}_sha=$($i.sha256)" >> $env:GITHUB_OUTPUT
+            "${k}_file=$($i.file)" >> $env:GITHUB_OUTPUT
+            "${k}_version=$($i.version)" >> $env:GITHUB_OUTPUT
+            Write-Host "$id $($i.version) $($i.url) $($i.sha256)"
+          }
+
+      - name: Cache downloads
+        uses: actions/cache@v4
+        with:
+          path: C:\qa-cache
+          key: qa-rag-${{ steps.cat.outputs.rag_sha }}-${{ steps.cat.outputs.qwen_small_sha }}-${{ steps.cat.outputs.nomic_embeddings_sha }}-${{ env.LLAMA_ZIP_SHA256 }}
+
+      - name: Download and verify installer, models, llama.cpp
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force $env:CACHE | Out-Null
+          $items = @(
+            @{ url = '${{ steps.cat.outputs.rag_url }}'; sha = '${{ steps.cat.outputs.rag_sha }}'; file = '${{ steps.cat.outputs.rag_file }}' },
+            @{ url = '${{ steps.cat.outputs.qwen_small_url }}'; sha = '${{ steps.cat.outputs.qwen_small_sha }}'; file = '${{ steps.cat.outputs.qwen_small_file }}' },
+            @{ url = '${{ steps.cat.outputs.nomic_embeddings_url }}'; sha = '${{ steps.cat.outputs.nomic_embeddings_sha }}'; file = '${{ steps.cat.outputs.nomic_embeddings_file }}' },
+            @{ url = "https://github.com/ggml-org/llama.cpp/releases/download/$env:LLAMA_TAG/llama-$env:LLAMA_TAG-bin-win-cpu-x64.zip"; sha = $env:LLAMA_ZIP_SHA256; file = "llama-$env:LLAMA_TAG-bin-win-cpu-x64.zip" }
+          )
+          foreach ($it in $items) {
+            $dest = Join-Path $env:CACHE $it.file
+            $ok = (Test-Path $dest) -and ((Get-FileHash $dest -Algorithm SHA256).Hash -eq $it.sha.ToUpper())
+            if (-not $ok) {
+              & curl.exe -fL --retry 4 --retry-delay 5 -sS -o $dest $it.url
+              if ($LASTEXITCODE -ne 0) { throw "download failed: $($it.url)" }
+            }
+            $h = (Get-FileHash $dest -Algorithm SHA256).Hash
+            if ($h -ne $it.sha.ToUpper()) { throw "SHA-256 mismatch for $($it.file): $h" }
+            Write-Host "verified $($it.file) $h"
+          }
+          Expand-Archive -Force (Join-Path $env:CACHE "llama-$env:LLAMA_TAG-bin-win-cpu-x64.zip") C:\llama
+          Get-ChildItem C:\llama -Recurse -Filter llama-server.exe | Select-Object -First 1 FullName
+
+      - name: Start llama-server (chat + embeddings)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "$env:QA_OUT\logs" | Out-Null
+          $srv = (Get-ChildItem C:\llama -Recurse -Filter llama-server.exe | Select-Object -First 1).FullName
+          $chat = @('-m', "$env:CACHE\${{ steps.cat.outputs.qwen_small_file }}", '--host', '127.0.0.1', '--port', '8080', '--alias', $env:QA_LLM_MODEL,
+                    '-c', '8192', '-np', '1', '--jinja', '--reasoning-budget', '0', '-t', '4')
+          $emb = @('-m', "$env:CACHE\${{ steps.cat.outputs.nomic_embeddings_file }}", '--host', '127.0.0.1', '--port', '8081', '--alias', $env:QA_EMB_MODEL,
+                   '--embedding', '-c', '8192', '-np', '4', '-b', '2048', '-ub', '2048', '-t', '2')
+          Start-Process -FilePath $srv -ArgumentList $chat -RedirectStandardOutput "$env:QA_OUT\logs\llama-chat.out.log" -RedirectStandardError "$env:QA_OUT\logs\llama-chat.err.log" -WindowStyle Hidden
+          Start-Process -FilePath $srv -ArgumentList $emb -RedirectStandardOutput "$env:QA_OUT\logs\llama-emb.out.log" -RedirectStandardError "$env:QA_OUT\logs\llama-emb.err.log" -WindowStyle Hidden
+          foreach ($p in 8080, 8081) {
+            $ok = $false
+            for ($i = 0; $i -lt 90; $i++) {
+              try { if ((Invoke-WebRequest "http://127.0.0.1:$p/health" -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200) { $ok = $true; break } } catch {}
+              Start-Sleep 2
+            }
+            if (-not $ok) { Get-Content "$env:QA_OUT\logs\llama-*.err.log" -Tail 40; throw "llama-server on $p not healthy" }
+          }
+          $body = @{ model = $env:QA_LLM_MODEL; messages = @(@{ role = 'user'; content = 'Réponds en un mot : quelle est la capitale de la France ?' }); max_tokens = 32 } | ConvertTo-Json -Depth 5
+          $r = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/v1/chat/completions -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body))
+          Write-Host "chat sanity: [$($r.choices[0].message.content)]"
+          $e = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8081/v1/embeddings -ContentType 'application/json' -Body (@{ model = $env:QA_EMB_MODEL; input = @('bonjour', 'bail commercial') } | ConvertTo-Json)
+          Write-Host "embedding sanity: $($e.data.Count) vectors of dim $($e.data[0].embedding.Count)"
+
+      - name: Prepare desktop (resolution, Python helpers, Playwright)
+        shell: pwsh
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop; Write-Host 'resolution set' } catch { Write-Host "Set-DisplayResolution unavailable: $_" }
+          python -m pip install --disable-pip-version-check -q pywinauto==0.6.8 pillow==11.0.0
+          Set-Location $env:QA_HELPERS
+          npm init -y | Out-Null
+          npm i --no-audit --no-fund "playwright@$env:PLAYWRIGHT_VERSION"
+          if ($LASTEXITCODE -ne 0) { throw 'npm i playwright failed' }
+
+      - name: Install Actelyo RAG Desktop (silent)
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:CACHE '${{ steps.cat.outputs.rag_file }}'
+          $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/LOG=$env:QA_OUT\logs\install.log") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit $($p.ExitCode)" }
+          $app = "$env:LOCALAPPDATA\Programs\Actelyo RAG Desktop"
+          if (-not (Test-Path "$app\Actelyo RAG.exe")) { throw 'exe missing after install' }
+          Get-Content "$app\resources\runtime\server\package.json" -TotalCount 5
+          "QA_APP=$app" >> $env:GITHUB_ENV
+          "QA_RUNTIME=$app\resources\runtime" >> $env:GITHUB_ENV
+
+      - name: Launch app with CDP
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "$env:QA_APP\Actelyo RAG.exe" -ArgumentList '--remote-debugging-port=9222'
+          for ($i = 0; $i -lt 60; $i++) {
+            try { $v = Invoke-RestMethod http://127.0.0.1:9222/json/version -TimeoutSec 3; Write-Host "CDP: $($v.Browser)"; break } catch { Start-Sleep 2 }
+          }
+
+      - name: Run functional QA
+        shell: pwsh
+        working-directory: ${{ env.QA_HELPERS }}
+        run: node qa.mjs
+
+      - name: Collect logs
+        if: always()
+        shell: pwsh
+        run: |
+          Get-Process -Name 'Actelyo RAG', 'llama-server', 'node' -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'llama-server' -or ($env:QA_APP -and $_.Path -like "$env:QA_APP*") } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep 3
+          $logs = "$env:QA_OUT\logs"
+          New-Item -ItemType Directory -Force $logs | Out-Null
+          $data = "$env:APPDATA\Actelyo RAG"
+          if (Test-Path $data) {
+            Copy-Item "$data\desktop.log" $logs -ErrorAction SilentlyContinue
+            Copy-Item "$data\server\.env" "$logs\server.env.txt" -ErrorAction SilentlyContinue
+            Get-ChildItem "$data" -Recurse -File | Where-Object { $_.FullName -notmatch 'node_modules|vector-cache|lancedb|\.db$' } | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 300 | Set-Content "$logs\data-dir-listing.txt"
+            Get-ChildItem "$data\storage\logs" -File -ErrorAction SilentlyContinue | Copy-Item -Destination $logs
+          }
+          Compress-Archive -Force -Path "$env:QA_OUT\logs\*", "$env:QA_OUT\dom", "$env:QA_OUT\rag-eval", "$env:QA_OUT\legal-out", "$env:QA_OUT\native-legal.stderr.txt" -DestinationPath "$env:QA_OUT\qa-logs.zip" -ErrorAction SilentlyContinue
+          if (Test-Path "$env:QA_OUT\summary.txt") { Get-Content "$env:QA_OUT\summary.txt" }
+
+      - name: Publish proofs to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "qa-func-rag-${{ github.run_id }}"
+          $files = @()
+          $files += Get-ChildItem "$env:QA_OUT\screens\*.png" -ErrorAction SilentlyContinue | ForEach-Object FullName
+          foreach ($f in 'report.json', 'summary.txt', 'qa-logs.zip') { if (Test-Path "$env:QA_OUT\$f") { $files += "$env:QA_OUT\$f" } }
+          $notes = if (Test-Path "$env:QA_OUT\summary.txt") { Get-Content -Raw "$env:QA_OUT\summary.txt" } else { 'no summary' }
+          gh release create $tag --repo ${{ github.repository }} --draft --target ${{ github.sha }} --title "QA functional RAG run ${{ github.run_id }}" --notes "$notes" $files
+          if ($LASTEXITCODE -ne 0) { throw 'release creation failed' }
+          Write-Host "draft release $tag with $($files.Count) files"

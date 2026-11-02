@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "articles": [
+    {
+      "id": "qa-societes-11", "citation": "Code fictif QA des sociétés, article 11", "jurisdiction": "Exemple fictif (QA)", "is_repealed": false,
+      "source_name": "Corpus QA fictif", "source_page": 11,
+      "text_fr": "La constitution d'une société fictive exige des statuts écrits, l'identification de chaque associé et la répartition du capital social entre les associés."
+    },
+    {
+      "id": "qa-baux-22", "citation": "Code fictif QA des baux, article 22", "jurisdiction": "Exemple fictif (QA)", "is_repealed": false,
+      "source_name": "Corpus QA fictif", "source_page": 22,
+      "text_fr": "Le bail commercial fictif fixe la durée de location, le montant du loyer et les conditions de renouvellement du local loué par le commerçant."
+    },
+    {
+      "id": "qa-donnees-33", "citation": "Code fictif QA des données, article 33", "jurisdiction": "Exemple fictif (QA)", "is_repealed": false,
+      "source_name": "Corpus QA fictif", "source_page": 33,
+      "text_fr": "Les données personnelles des clients doivent être traitées de manière confidentielle et ne peuvent être conservées au-delà d'une durée limitée."
+    },
+    {
+      "id": "qa-travail-44", "citation": "Code fictif QA du travail, article 44", "jurisdiction": "Exemple fictif (QA)", "is_repealed": false,
+      "source_name": "Corpus QA fictif", "source_page": 44,
+      "text_fr": "Le salarié bénéficie d'une période d'essai dont la durée maximale est précisée dans le contrat de travail et qui peut être rompue librement."
+    },
+    {
+      "id": "qa-ancien-55", "citation": "Code fictif QA ancien, article 55", "jurisdiction": "Exemple fictif (QA)", "is_repealed": true,
+      "source_name": "Corpus QA fictif", "source_page": 55,
+      "text_fr": "Ancienne règle fictive abrogée relative à la forme des contrats de vente."
+    }
+  ]
+}
