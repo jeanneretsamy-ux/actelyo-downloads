@@ -230,6 +230,29 @@ async function main() {
     return page.url()
   })
 
+  await step('diag: app server model listing (capture proxy on :8081)', async () => {
+    const http = await import('node:http')
+    const seen = []
+    const srv = http.createServer((req, res) => {
+      seen.push({ method: req.method, url: req.url, headers: req.headers })
+      const up = http.request({ host: '127.0.0.1', port: 8080, path: req.url, method: req.method, headers: req.headers }, (ur) => {
+        res.writeHead(ur.statusCode, ur.headers)
+        ur.pipe(res)
+      })
+      up.on('error', (e) => { res.writeHead(502); res.end(String(e)) })
+      req.pipe(up)
+    })
+    await new Promise((r) => srv.listen(8081, '127.0.0.1', r))
+    const results = {}
+    for (const q of ['url=http://127.0.0.1:8081&backend=llamacpp', 'url=http://127.0.0.1:8081', 'url=http://127.0.0.1:8081&backend=unknown', 'url=http://127.0.0.1:8081/v1&backend=llamacpp', 'url=http://127.0.0.1:8080&backend=vllm']) {
+      results[q] = await api(`/api/providers/models?${q}`)
+    }
+    srv.close()
+    report.facts.diagModels = { results, seen }
+    fs.writeFileSync(path.join(OUT, '..', 'diag-models.json'), JSON.stringify({ results, seen }, null, 2))
+    return JSON.stringify(Object.fromEntries(Object.entries(results).map(([k, v]) => [k, v.status]))) + ` requests seen=${seen.length}`
+  }, { critical: false })
+
   await step('1b add provider (llama.cpp preset -> local llama-server)', async (rec) => {
     await page.getByTestId('onboarding-add-provider-button').click()
     await page.getByTestId('provider-modal-next').waitFor({ state: 'visible', timeout: 15000 })

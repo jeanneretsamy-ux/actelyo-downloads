@@ -125,6 +125,9 @@ console.log('node', process.version)
 & $bundledNode $diag *> (Join-Path $out 'diag-fetch.txt')
 Get-Content (Join-Path $out 'diag-fetch.txt')
 
+$dist = Join-Path $entry.InstallLocation 'resources\openbousic\dist'
+Get-ChildItem $dist -Recurse -Filter *.js | Select-String -Pattern 'Failed to fetch models|No models found at' -Context 40, 40 |
+  Out-String -Width 400 | Set-Content (Join-Path $out 'dist-fetch-models.txt')
 New-Item -ItemType Directory -Force -Path 'C:\qa-projects' | Out-Null
 $facts | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'setup-facts.json') -Encoding utf8
 "APP_EXE=$appExe" | Add-Content $env:GITHUB_ENV
