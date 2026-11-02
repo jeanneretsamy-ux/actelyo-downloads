@@ -125,7 +125,8 @@ async function uploadAndEmbed(rec, slug, files, prefix) {
   await page.goto(`${origin}/workspace/${slug}`);
   await sleep(2500);
   await dismissPopups();
-  const up = page.locator('button[data-tooltip-id="upload-workspace"]');
+  // Every sidebar workspace has an upload button; target the requested one.
+  const up = page.locator(`a[href="/workspace/${slug}"] button[data-tooltip-id="upload-workspace"]`);
   await up.first().waitFor({ state: 'attached' });
   await up.first().click({ force: true });
   const fileInput = page.locator('input[type="file"]');
@@ -499,5 +500,7 @@ main().catch((e) => { report.fatal = String(e?.stack || e); save(); console.erro
   const summary = report.steps.map((s) => `${s.id} ${s.status.toUpperCase().padEnd(5)} ${s.title}`).join('\n');
   console.log('\n' + summary);
   fs.writeFileSync(path.join(OUT, 'summary.txt'), summary + '\n');
-  process.exit(0);
+  report.passed = !report.fatal && report.steps.length === 10 && report.steps.every((s) => s.status === 'pass');
+  save();
+  process.exit(report.passed ? 0 : 1);
 });
