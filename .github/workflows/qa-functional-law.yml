@@ -1,0 +1,56 @@
+name: QA functional Law Harness
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-functional-law]
+    paths: ['.github/qa-functional/law/**', '.github/workflows/qa-functional-law.yml']
+permissions:
+  contents: write
+concurrency:
+  group: qa-functional-law
+  cancel-in-progress: true
+jobs:
+  qa:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    env:
+      QA_OUT: ${{ github.workspace }}\qa-out
+      QA_NODE_DIR: ${{ github.workspace }}\qa-node
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/qa-functional/law
+      - name: Install Playwright core
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force $env:QA_NODE_DIR | Out-Null
+          Set-Location $env:QA_NODE_DIR
+          '{"name":"qa-node","private":true}' | Set-Content package.json
+          npm install --no-audit --no-fund playwright-core@1.62.1
+      - name: Install app, verify downloads, start llama-server
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/qa-functional/law/setup.ps1 -Out $env:QA_OUT
+      - name: Functional QA (Playwright over Electron)
+        shell: pwsh
+        run: node ./.github/qa-functional/law/qa-law.mjs $env:ACTELYO_INSTALLED $env:QA_OUT http://127.0.0.1:8080/v1
+      - name: Collect logs
+        if: always()
+        shell: pwsh
+        run: |
+          $h = Join-Path $env:LOCALAPPDATA 'hermes'
+          if (Test-Path "$h\logs") { Compress-Archive -Path "$h\logs\*" -DestinationPath "$env:QA_OUT\hermes-logs.zip" -Force }
+          Get-ChildItem $env:APPDATA, $env:LOCALAPPDATA -Directory -ErrorAction SilentlyContinue | Where-Object Name -match 'actelyo|hermes' | ForEach-Object { "$($_.FullName)" } | Set-Content "$env:QA_OUT\userdata-dirs.txt"
+          $d = Get-ChildItem $env:APPDATA -Directory | Where-Object Name -match 'actelyo|hermes' | Select-Object -First 1
+          if ($d) { Get-ChildItem $d.FullName -Recurse -Include *.log -ErrorAction SilentlyContinue | Select-Object -First 10 | Compress-Archive -DestinationPath "$env:QA_OUT\desktop-logs.zip" -Force -ErrorAction SilentlyContinue }
+          Get-ChildItem $env:QA_OUT | Format-Table Name, Length
+          if (Test-Path "$env:QA_OUT\report.json") { Get-Content "$env:QA_OUT\report.json" -Raw | ConvertFrom-Json | Select-Object -ExpandProperty steps | ForEach-Object { "$(if ($_.ok) {'PASS'} else {'FAIL'}) $($_.id) $($_.detail)" } }
+      - name: Publish proofs to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem $env:QA_OUT -File | Where-Object { $_.Extension -in '.png', '.json', '.log', '.zip', '.txt', '.yaml' } | ForEach-Object FullName)
+          if ($files) { gh release create "qa-func-law-${{ github.run_id }}" @files --draft --target $env:GITHUB_SHA --title "QA functional Law Harness ${{ github.run_id }}" --notes 'Preuves QA fonctionnelle (brouillon, ne pas publier).' }
