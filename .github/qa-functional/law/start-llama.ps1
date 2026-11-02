@@ -9,13 +9,24 @@ $facts = [ordered]@{}
 function Save-Facts { $facts | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $Out 'llama.json') -Encoding utf8 }
 $server = Get-Item $env:LLAMA_SERVER
 $model = $env:QA_MODEL
+# --- Short prompt-processing benchmark at 4K depth (diagnostic only)
+$bench = Join-Path $server.DirectoryName 'llama-bench.exe'
+if (Test-Path $bench) {
+  $bp = Start-Process $bench -ArgumentList @('-m', $model, '-p', '512', '-n', '0', '-d', '4096', '-fa', '0,1', '-r', '1', '-t', "$([Environment]::ProcessorCount)") -PassThru -WindowStyle Hidden `
+    -RedirectStandardOutput (Join-Path $Out 'llama-bench.log') -RedirectStandardError (Join-Path $Out 'llama-bench.err.log')
+  if (-not $bp.WaitForExit(420 * 1000)) { $bp.Kill(); Write-Host 'llama-bench timed out' }
+  Get-Content (Join-Path $Out 'llama-bench.log') -ErrorAction SilentlyContinue | Write-Host
+}
 # --- Start llama-server (64K context: Hermes refuses windows below 64,000 tokens)
 $help = (& $server.FullName --help 2>&1 | Out-String)
 $llamaArgs = @('-m', $model, '--host', '127.0.0.1', '--port', "$Port", '-c', '65536', '-np', '1', '--jinja',
   '--alias', 'qwen3-0.6b', '-t', "$([Environment]::ProcessorCount)", '--no-webui')
 if ($help -notmatch '--no-webui') { $llamaArgs = $llamaArgs | Where-Object { $_ -ne '--no-webui' } }
 if ($help -match '--reasoning-budget') { $llamaArgs += @('--reasoning-budget', '0') }
-if ($help -match 'flash-attn[^\r\n]*(on\|off|\[on)') { $llamaArgs += @('-fa', 'on', '-ctk', 'q8_0', '-ctv', 'q8_0') }
+# CPU flash attention reads the whole KV cache per query row: prompt processing of the
+# agent's ~18K-token prompt ran at ~14 tok/s with it. Plain GEMM attention is much faster.
+if ($help -match 'flash-attn[^\r\n]*(on\|off|\[on)') { $llamaArgs += @('-fa', 'off') }
+if ($help -match '--log-timestamps') { $llamaArgs += @('--log-timestamps') }
 $facts.llamaArgs = ($llamaArgs -join ' ')
 Write-Host "llama-server $($facts.llamaArgs)"
 $p = Start-Process $server.FullName -ArgumentList $llamaArgs -PassThru -WindowStyle Hidden `

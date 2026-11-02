@@ -100,7 +100,8 @@ async function composer(page) {
 }
 
 // Sends a prompt and waits for the assistant turn to finish streaming.
-async function chat(page, prompt, timeout = 600000) {
+const PENDING = /waiting on|first stream chunk|^\W*$/i
+async function chat(page, prompt, timeout = 1200000) {
   const c = await composer(page)
   const before = await page.locator('[data-role="assistant"]').count()
   await c.click()
@@ -116,10 +117,11 @@ async function chat(page, prompt, timeout = 600000) {
     const cur = n > before ? (await msgs.nth(n - 1).innerText().catch(() => '')).trim() : ''
     const busy = await page.getByRole('button', { name: /^(Stop|Arrêter)$/ }).first().isVisible().catch(() => false)
     if (cur !== text) { text = cur; stableSince = Date.now() }
-    if (cur && !busy && Date.now() - stableSince > 6000) break
+    if (cur && !busy && !PENDING.test(cur) && Date.now() - stableSince > 6000) break
   }
   const systemMsgs = await page.locator('[data-role="system"]').allInnerTexts().catch(() => [])
-  return { text, systemMsgs }
+  const busy = await page.getByRole('button', { name: /^(Stop|Arrêter)$/ }).first().isVisible().catch(() => false)
+  return { text, systemMsgs, busy, seconds: Math.round((Date.now() - (deadline - timeout)) / 1000) }
 }
 
 async function waitBodyText(page, needle, timeout = 30000) {
@@ -177,9 +179,9 @@ try {
     const f = await shot(page, 'chat-empty'); if (f) rec.screenshots.push(f)
     const r = await chat(page, 'Answer in one short sentence and do not use any tools: what is a lease agreement?')
     fs.writeFileSync(path.join(out, 'chat1.json'), JSON.stringify(r, null, 2))
-    if (!r.text) throw new Error('no assistant reply; system messages: ' + r.systemMsgs.join(' | '))
+    if (!r.text || r.busy || PENDING.test(r.text)) throw new Error(`no finished assistant reply after ${r.seconds}s: "${r.text.slice(0, 300)}" system: ${r.systemMsgs.join(' | ')}`)
     if (/can't reach|cannot reach|error|erreur/i.test(r.text) && r.text.length < 300) throw new Error('assistant turn looks like an error: ' + r.text)
-    return 'reply: ' + r.text.slice(0, 400).replace(/\s+/g, ' ')
+    return `reply in ${r.seconds}s: ` + r.text.slice(0, 400).replace(/\s+/g, ' ')
   })
 
   await step('04-cabinet', 'Cabinet: open Droit des Sociétés space, add a client and a dossier', P, async rec => {
@@ -190,11 +192,15 @@ try {
     await page.getByRole('heading', { name: 'Cabinet juridique — Droit des Sociétés', exact: true }).waitFor({ timeout: 30000 })
     const f = await shot(page, 'cabinet-space'); if (f) rec.screenshots.push(f)
     await page.getByRole('button', { name: 'Clients et dossiers', exact: true }).click()
-    await page.getByLabel('Nom du client', { exact: true }).fill('Client QA fonctionnel')
+    const field = (label, tag) => page.locator('label').filter({ has: page.locator('span', { hasText: new RegExp('^' + label + '$') }) }).locator(tag).first()
+    await field('Nom du client', 'input').fill('Client QA fonctionnel')
     await page.getByRole('button', { name: 'Ajouter le client', exact: true }).click()
-    await page.getByLabel('Client du dossier', { exact: true }).selectOption({ label: 'Client QA fonctionnel' })
-    await page.getByLabel('Intitulé du dossier', { exact: true }).fill('Dossier QA fonctionnel')
-    await page.getByLabel('Type de dossier', { exact: true }).selectOption({ index: 1 })
+    const clientSelect = field('Client du dossier', 'select')
+    await clientSelect.locator('option', { hasText: 'Client QA fonctionnel' }).waitFor({ state: 'attached', timeout: 30000 })
+    await clientSelect.selectOption({ label: 'Client QA fonctionnel' })
+    await field('Intitulé du dossier', 'input').fill('Dossier QA fonctionnel')
+    await field('Type de dossier', 'select').selectOption({ index: 1 })
+    const f2 = await shot(page, 'cabinet-dossier-form'); if (f2) rec.screenshots.push(f2)
     await page.getByRole('button', { name: 'Créer le dossier', exact: true }).click()
     await waitBodyText(page, 'Dossier QA fonctionnel')
     return 'client "Client QA fonctionnel" and dossier "Dossier QA fonctionnel" created'
@@ -248,8 +254,8 @@ try {
     if (await newChat.isVisible().catch(() => false)) await newChat.click().catch(() => {})
     const r = await chat(page, 'Reply with one short sentence: name one type of court.')
     fs.writeFileSync(path.join(out, 'chat2.json'), JSON.stringify(r, null, 2))
-    if (!r.text) throw new Error('no assistant reply after restart; system: ' + r.systemMsgs.join(' | '))
-    return 'reply: ' + r.text.slice(0, 400).replace(/\s+/g, ' ')
+    if (!r.text || r.busy || PENDING.test(r.text)) throw new Error(`no finished assistant reply after ${r.seconds}s: "${r.text.slice(0, 300)}" system: ${r.systemMsgs.join(' | ')}`)
+    return `reply in ${r.seconds}s: ` + r.text.slice(0, 400).replace(/\s+/g, ' ')
   })
 
   await step('09-cabinet-persisted', 'Cabinet data persisted across restart', P, async () => {
