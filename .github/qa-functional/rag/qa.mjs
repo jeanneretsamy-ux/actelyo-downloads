@@ -138,15 +138,16 @@ async function uploadAndEmbed(rec, slug, files, prefix) {
   // Wait until every uploaded file is listed in "My Documents".
   const deadline = Date.now() + 180000;
   for (const t of titles) {
-    const row = page.locator('tr', { hasText: t.slice(0, 18) });
-    await row.first().waitFor({ state: 'visible', timeout: Math.max(5000, deadline - Date.now()) });
+    const row = page.locator('tr', { has: page.getByText(t, { exact: true }) }).last();
+    await row.waitFor({ state: 'visible', timeout: Math.max(5000, deadline - Date.now()) });
   }
   await sleep(1500);
   rec.screenshots.push(await shot(`${prefix}-uploaded`));
   for (const t of titles) {
-    const row = page.locator('tr', { hasText: t.slice(0, 18) }).first();
+    // Folder rows contain nested document rows. Select the leaf, not the folder.
+    const row = page.locator('tr', { has: page.getByText(t, { exact: true }) }).last();
     await row.scrollIntoViewIfNeeded().catch(() => {});
-    await row.getByText(t.slice(0, 18)).first().click();
+    await row.getByText(t, { exact: true }).click();
     await sleep(400);
     const checked = await row.locator('input[type="checkbox"], [role="checkbox"]').first()
       .evaluate((el) => el.checked === true || el.getAttribute('aria-checked') === 'true').catch(() => null);
@@ -330,7 +331,7 @@ async function main() {
       out.answer = last.content;
       out.sources = (last.sources || []).map((x) => ({ title: x.title, score: x.score }));
       out.factFound = (last.content || '').replace(/[\s  .,]/g, '').includes('4817');
-      const refBtn = page.getByText(/\d+\s+(references?|référence)/i).last();
+      const refBtn = page.getByRole('button', { name: /^(sources|\d+\s+(references?|références?))$/i }).last();
       out.citationButtonVisible = await refBtn.isVisible().catch(() => false);
       if (out.citationButtonVisible) {
         await refBtn.click();
@@ -341,41 +342,33 @@ async function main() {
     }
     return out;
   }
-  await step('S05', 'Ask a question in chat; answer uses the fact and shows a citation', async (rec) => {
+  await step('S05', 'Ask a document question in Query mode; verify the fact and open its source', async (rec) => {
     if (!slug) throw new Error('no workspace');
     rec.details.question = Q;
     const ws = (await api(`/api/workspace/${slug}`)).json?.workspace;
     rec.details.defaultChatMode = ws?.chatMode;
-    const first = await ask(rec, `mode-${ws?.chatMode || 'default'}`);
-    rec.details.attempts = [first];
-    const ok = (r) => r.factFound && r.sources?.length && r.citationButtonVisible;
-    if (!ok(first)) {
-      // Retry with the workspace in "Query" mode (RAG only, no agent routing), set through the UI.
+    // Query is the document-retrieval feature. Automatic mode routes through
+    // an agent and depends on the selected model's tool-calling capability.
+    if (ws?.chatMode !== 'query') {
       await page.goto(`${origin}/workspace/${slug}/settings/chat-settings`);
       await sleep(2500);
       rec.screenshots.push(await shot('chat-settings'));
-      let via = 'ui';
       if (await clickIfVisible(page.getByRole('button', { name: /^query$/i }), 4000)) {
         await sleep(500);
         await clickIfVisible(page.getByRole('button', { name: /update workspace/i }), 4000);
         await sleep(2000);
       }
       if ((await api(`/api/workspace/${slug}`)).json?.workspace?.chatMode !== 'query') {
-        via = 'api';
-        await api(`/api/workspace/${slug}/update`, { method: 'POST', body: JSON.stringify({ chatMode: 'query' }) });
+        throw new Error('Query mode was not saved through the workspace settings UI');
       }
       rec.screenshots.push(await shot('chat-settings-query'));
-      const second = await ask(rec, 'mode-query');
-      second.modeSetVia = via;
-      rec.details.attempts.push(second);
-      if (ok(second)) {
-        rec.status = 'fail';
-        rec.error = `Default chat mode "${ws?.chatMode}" failed (${first.uiError || 'no fact/citation'}); works only after switching the workspace to Query mode.`;
-        return;
-      }
     }
-    const last = rec.details.attempts.at(-1);
-    if (!ok(last)) throw new Error(`fact=${last.factFound} sources=${last.sources?.length} citationBtn=${last.citationButtonVisible} uiError=${last.uiError}`);
+    const last = await ask(rec, 'mode-query');
+    last.modeSetVia = 'ui';
+    rec.details.attempts = [last];
+    if (!(last.factFound && last.sources?.length && last.citationButtonVisible && last.citationShowsDoc)) {
+      throw new Error(`fact=${last.factFound} sources=${last.sources?.length} citationBtn=${last.citationButtonVisible} citationDocument=${last.citationShowsDoc} uiError=${last.uiError}`);
+    }
   });
 
   // ---- Legal import via native menu ----
@@ -480,6 +473,7 @@ evaluate(cfg, process.env.ACTELYO_RAG_API_KEY, req).then((r) => { fs.writeFileSy
     await page.evaluate(() => document.getElementById('qa-overlay')?.remove());
     const m = rec.details.metrics;
     if (!m) throw new Error('evaluator produced no metrics');
+    if (m['recall@5'] < 1 || m.mrr <= 0) throw new Error(`Retrieval regression: Recall@5=${m['recall@5']}, MRR=${m.mrr}`);
     if (cli.status !== 0) {
       rec.status = 'fail';
       rec.error = `Documented rag-eval CLI fails against the packaged Desktop: ${rec.details.documentedCli.stderr || rec.details.documentedCli.stdout}. Metrics only obtainable through /api/v1 (Recall@5=${m['recall@5']}, MRR=${m.mrr}).`;
