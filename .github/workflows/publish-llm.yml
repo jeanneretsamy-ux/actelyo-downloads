@@ -1,0 +1,96 @@
+name: Publish Actelyo LLM Studio installer
+# LLM Studio is built in a private repository, so the verified installer is carried
+# here in < 100 MB parts, reassembled, re-tested on Windows and published publicly.
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/llm-3.0.3]
+    paths: ['.github/incoming/llm/**', '.github/workflows/publish-llm.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  TAG: desktop-llm-v3.0.3
+  VERSION: 3.0.3
+  FILE: Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+      - name: Reassemble and verify the installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = '.github/incoming/llm'
+          New-Item -ItemType Directory -Force out | Out-Null
+          $setup = Join-Path (Resolve-Path out) $env:FILE
+          $fs = [IO.File]::Create($setup)
+          Get-ChildItem $dir -Filter "$env:FILE.part*" | Sort-Object Name | ForEach-Object { $in = [IO.File]::OpenRead($_.FullName); $in.CopyTo($fs); $in.Dispose() }
+          $fs.Dispose()
+          $expected = ((Get-Content "$dir/SHA256SUMS.txt") -split '\s+')[0]
+          $actual = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
+          Copy-Item "$dir/SHA256SUMS.txt" out/
+          "SETUP=$setup" >> $env:GITHUB_ENV
+          "SHA=$actual" >> $env:GITHUB_ENV
+      - name: QA on Windows (install, version, server, window, logo, uninstall)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+          New-Item -ItemType Directory -Force proof | Out-Null
+          [System.Drawing.Icon]::ExtractAssociatedIcon($env:SETUP).ToBitmap().Save("$PWD/proof/installer-icon.png")
+          $p = Start-Process $env:SETUP -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait -PassThru
+          if ($p.ExitCode) { throw "installer exit $($p.ExitCode)" }
+          $e = Get-ItemProperty 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object DisplayName -like 'Actelyo LLM*' | Select-Object -First 1
+          if (-not $e) { throw 'not registered' }
+          if ($e.DisplayVersion -ne $env:VERSION) { throw "registered version $($e.DisplayVersion)" }
+          $dir = $e.InstallLocation.TrimEnd('\'); $exe = Join-Path $dir 'Actelyo LLM.exe'
+          if (-not (Test-Path $exe)) { throw "missing $exe" }
+          [System.Drawing.Icon]::ExtractAssociatedIcon($exe).ToBitmap().Save("$PWD/proof/app-icon.png")
+          $proc = Start-Process $exe -WorkingDirectory $dir -PassThru
+          $health = $null
+          for ($i = 0; $i -lt 60 -and -not $health; $i++) { Start-Sleep 2; try { $health = Invoke-RestMethod 'http://127.0.0.1:1235/health' -TimeoutSec 3 } catch { } }
+          if (-not $health) { throw 'local API /health did not answer' }
+          $health | ConvertTo-Json | Set-Content proof/health.json
+          if ($health.version -ne $env:VERSION) { throw "/health reports $($health.version), expected $env:VERSION" }
+          Start-Sleep 15
+          $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+          $bmp.Save("$PWD/proof/app-running.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $fam = @(Get-Process | Where-Object { try { $_.Path -and $_.Path.StartsWith($dir, 'OrdinalIgnoreCase') } catch { $false } })
+          $titles = @($fam | Where-Object MainWindowTitle | ForEach-Object MainWindowTitle)
+          if (-not $titles) { throw 'no application window' }
+          Write-Host "Window: $($titles -join ' | ')  /health version=$($health.version)  registered=$($e.DisplayVersion)"
+          $fam | Stop-Process -Force
+          Start-Sleep 5
+          $u = ($e.UninstallString -replace '"', '')
+          Start-Process $u -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          Start-Sleep 5
+          if (Test-Path $exe) { throw 'uninstall left the application behind' }
+      - name: Upload proof to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem proof -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
+          if ($files) { gh release create "qa-proof-llm-${{ github.run_id }}" @files --draft --title "QA proof LLM Studio (${{ github.run_id }})" --notes 'Preuves QA automatiques.' --target ${{ github.sha }} }
+      - name: Publish the public release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:TAG 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload $env:TAG $env:SETUP out/SHA256SUMS.txt --clobber }
+          else { gh release create $env:TAG $env:SETUP out/SHA256SUMS.txt --latest=false --title 'Actelyo LLM Studio 3.0.3' --notes "Correctifs : le test matériel fonctionne avec les modèles à raisonnement (Qwen3…), l'écran affiche l'erreur en cas d'échec, et la version affichée est la même partout (Windows, application, /health). Logo Actelyo LLM Studio (rouge). Met à jour la 3.0.2 sur place sans toucher aux données. SHA-256 $env:SHA" --target ${{ github.sha }} }
+          $code = (Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/$env:TAG/$env:FILE" -Method Head -MaximumRedirection 5 -UseBasicParsing).StatusCode
+          if ($code -ne 200) { throw "public download answered $code" }
+          Write-Host "Public download OK"
