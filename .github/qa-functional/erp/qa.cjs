@@ -332,8 +332,9 @@ async function makeDocx(file) {
     await add.click();
     let ok = await nativeDialog(s, DOCDIR, 'S3-open');
     if (!ok && app) {
-      report.notes.push('S3: native Open dialog could not be driven; dialog.showOpenDialog stubbed in main process (same IPC/ingest path).');
-      await sleep(2000);
+      report.notes.push('S3: native picker bypassed — the Windows folder picker could not be driven by UI Automation; dialog.showOpenDialog replaced in the main process to return the fixture folder. Indexing, linking and embeddings still run in the real app.');
+      s.bypassed = 'native picker bypassed';
+      await add.waitFor({ state: 'visible' }); for (let i = 0; i < 40 && await add.isDisabled(); i++) await sleep(500);
       await app.evaluate(({ dialog }, f) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [f] }); }, DOCDIR);
       await add.click(); ok = true; s.details.push('FALLBACK: stubbed showOpenDialog');
     }
@@ -382,8 +383,9 @@ async function makeDocx(file) {
     await btn.waitFor({ timeout: 30000 }); await btn.click();
     let ok = await nativeDialog(s, EXPORT, 'S5-save');
     if (!ok && app) {
-      report.notes.push('S5: native Save dialog could not be driven; dialog.showSaveDialog stubbed in main process.');
-      await sleep(2000);
+      report.notes.push('S5: native Save dialog bypassed — dialog.showSaveDialog replaced in the main process; the real Word export code still writes the file.');
+      s.bypassed = 'native save dialog bypassed';
+      for (let i = 0; i < 40 && await btn.isDisabled(); i++) await sleep(500);
       await app.evaluate(({ dialog }, f) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: f }); }, EXPORT);
       await btn.click(); ok = true; s.details.push('FALLBACK: stubbed showSaveDialog');
     }
