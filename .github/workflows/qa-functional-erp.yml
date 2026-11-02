@@ -1,0 +1,188 @@
+name: QA functional — Actelyo ERP Desktop
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-functional-erp]
+    paths:
+      - '.github/workflows/qa-functional-erp.yml'
+      - '.github/qa-functional/erp/**'
+permissions:
+  contents: write
+concurrency:
+  group: qa-functional-erp
+  cancel-in-progress: true
+env:
+  CATALOG_URL: https://raw.githubusercontent.com/jeanneretsamy-ux/actelyo-downloads/main/catalog.json
+  # llama.cpp pinned release (published 2026-10-04) — Windows CPU x64 build.
+  LLAMA_TAG: b11400
+  LLAMA_ZIP: llama-b11400-bin-win-cpu-x64.zip
+  LLAMA_SHA256: 7e9a226e5bd4f95da1fc903ad79493f64a838be0e50a708ecfec6edb3d7fd9a4
+  PLAYWRIGHT_VERSION: 1.59.1
+  DOCX_VERSION: 9.5.1
+  JSZIP_VERSION: 3.10.1
+  FUSES_VERSION: 2.1.3
+jobs:
+  qa:
+    runs-on: windows-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read catalog
+        id: cat
+        run: |
+          $c = Invoke-RestMethod $env:CATALOG_URL
+          $items = if ($c.items) { $c.items } else { $c }
+          $erp = $items | Where-Object id -eq 'erp'
+          $qwen = $items | Where-Object id -eq 'qwen-small'
+          $nomic = $items | Where-Object id -eq 'nomic-embeddings'
+          if (-not $erp -or -not $qwen -or -not $nomic) { throw 'catalog items missing' }
+          $erp | ConvertTo-Json -Depth 6 | Set-Content "$env:RUNNER_TEMP\erp-item.json"
+          "erp_version=$($erp.version)" >> $env:GITHUB_OUTPUT
+          "qwen_url=$($qwen.url)" >> $env:GITHUB_OUTPUT
+          "qwen_sha=$($qwen.sha256)" >> $env:GITHUB_OUTPUT
+          "nomic_url=$($nomic.url)" >> $env:GITHUB_OUTPUT
+          "nomic_sha=$($nomic.sha256)" >> $env:GITHUB_OUTPUT
+          Write-Host "ERP $($erp.version) $($erp.url) parts=$([bool]$erp.parts)"
+
+      - name: Restore models and llama.cpp cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\qa-cache
+          key: qa-erp-${{ steps.cat.outputs.qwen_sha }}-${{ steps.cat.outputs.nomic_sha }}-${{ env.LLAMA_SHA256 }}
+
+      - name: Download and verify models + llama.cpp
+        run: |
+          New-Item -ItemType Directory -Force C:\qa-cache | Out-Null
+          function Get-Verified($url, $file, $sha) {
+            if (-not (Test-Path $file) -or (Get-FileHash $file -Algorithm SHA256).Hash -ne $sha.ToUpper()) {
+              Write-Host "Downloading $url"
+              curl.exe -fsSL --retry 5 -o $file $url
+              if ($LASTEXITCODE) { throw "download failed $url" }
+            }
+            $h = (Get-FileHash $file -Algorithm SHA256).Hash
+            if ($h -ne $sha.ToUpper()) { throw "SHA-256 mismatch for $file : $h" }
+            Write-Host "OK $file $h"
+          }
+          Get-Verified '${{ steps.cat.outputs.qwen_url }}' C:\qa-cache\Qwen3-0.6B-Q8_0.gguf '${{ steps.cat.outputs.qwen_sha }}'
+          Get-Verified '${{ steps.cat.outputs.nomic_url }}' C:\qa-cache\nomic-embed-text-v1.5.Q4_K_M.gguf '${{ steps.cat.outputs.nomic_sha }}'
+          Get-Verified "https://github.com/ggml-org/llama.cpp/releases/download/$env:LLAMA_TAG/$env:LLAMA_ZIP" "C:\qa-cache\$env:LLAMA_ZIP" $env:LLAMA_SHA256
+          Expand-Archive "C:\qa-cache\$env:LLAMA_ZIP" C:\llama -Force
+          Get-ChildItem C:\llama -Filter llama-server.exe -Recurse | Select-Object -First 1 | ForEach-Object { "LLAMA_DIR=$($_.DirectoryName)" >> $env:GITHUB_ENV }
+
+      - name: Save models and llama.cpp cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\qa-cache
+          key: qa-erp-${{ steps.cat.outputs.qwen_sha }}-${{ steps.cat.outputs.nomic_sha }}-${{ env.LLAMA_SHA256 }}
+
+      - name: Download, verify and install ERP silently
+        run: |
+          $erp = Get-Content "$env:RUNNER_TEMP\erp-item.json" | ConvertFrom-Json
+          $dir = "C:\qa-installer"; New-Item -ItemType Directory -Force $dir | Out-Null
+          $exe = Join-Path $dir $erp.file
+          if ($erp.parts) {
+            $i = 0; $partFiles = @()
+            foreach ($p in $erp.parts) {
+              $u = if ($p -is [string]) { $p } else { $p.url }
+              $pf = Join-Path $dir ("part{0:D3}" -f $i); $i++
+              curl.exe -fsSL --retry 5 -o $pf $u; if ($LASTEXITCODE) { throw "part download failed $u" }
+              if ($p.sha256) { if ((Get-FileHash $pf -Algorithm SHA256).Hash -ne $p.sha256.ToUpper()) { throw "part sha mismatch $u" } }
+              $partFiles += $pf
+            }
+            $out = [IO.File]::Create($exe)
+            foreach ($pf in $partFiles) { $b = [IO.File]::ReadAllBytes($pf); $out.Write($b, 0, $b.Length) }
+            $out.Close()
+          } else {
+            curl.exe -fsSL --retry 5 -o $exe $erp.url; if ($LASTEXITCODE) { throw 'installer download failed' }
+          }
+          $h = (Get-FileHash $exe -Algorithm SHA256).Hash
+          if ($h -ne $erp.sha256.ToUpper()) { throw "Installer SHA-256 mismatch: $h" }
+          Write-Host "Installer verified $h"
+          $p = Start-Process $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/LOG=$env:RUNNER_TEMP\install.log" -PassThru -Wait
+          Write-Host "Installer exit $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "installer failed $($p.ExitCode)" }
+          $roots = @("$env:LOCALAPPDATA\Programs", $env:ProgramFiles, ${env:ProgramFiles(x86)})
+          $cand = foreach ($r in $roots) { if (Test-Path $r) { Get-ChildItem $r -Recurse -Depth 2 -Filter '*.exe' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'Actelyo' -and $_.Name -notmatch '^unins' -and $_.Name -notmatch 'elevate|Update' } } }
+          $cand | ForEach-Object { Write-Host "candidate: $($_.FullName)" }
+          $app = $cand | Where-Object { Test-Path (Join-Path $_.DirectoryName 'resources\app.asar') } | Select-Object -First 1
+          if (-not $app) { throw 'installed app exe not found' }
+          Write-Host "ERP_EXE=$($app.FullName)"
+          "ERP_EXE=$($app.FullName)" >> $env:GITHUB_ENV
+
+      - name: Install QA tooling
+        run: |
+          $d = "$env:RUNNER_TEMP\qa-node"; New-Item -ItemType Directory -Force $d | Out-Null
+          Set-Location $d; npm init -y | Out-Null
+          npm i --no-audit --no-fund "playwright@$env:PLAYWRIGHT_VERSION" "docx@$env:DOCX_VERSION" "jszip@$env:JSZIP_VERSION" "@electron/fuses@$env:FUSES_VERSION"
+          if ($LASTEXITCODE) { throw 'npm install failed' }
+          "NODE_PATH=$d\node_modules" >> $env:GITHUB_ENV
+          "QA_NODE=$d" >> $env:GITHUB_ENV
+
+      - name: Inspect Electron fuses
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force C:\qa-out\logs | Out-Null
+          Set-Location $env:QA_NODE
+          npx --no-install electron-fuses read --app "$env:ERP_EXE" *>&1 | Tee-Object C:\qa-out\logs\fuses.txt
+          Copy-Item "$env:RUNNER_TEMP\install.log" C:\qa-out\logs\install.log -ErrorAction SilentlyContinue
+          (Get-Item $env:ERP_EXE).VersionInfo | Format-List | Out-String | Tee-Object C:\qa-out\logs\exe-version.txt
+
+      - name: Run functional QA
+        id: qa
+        continue-on-error: true
+        env:
+          QA_OUT: C:\qa-out
+          CHAT_GGUF: C:\qa-cache\Qwen3-0.6B-Q8_0.gguf
+          EMBED_GGUF: C:\qa-cache\nomic-embed-text-v1.5.Q4_K_M.gguf
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop } catch { Write-Host "resolution unchanged: $($_.Exception.Message)" }
+          Get-Process | Where-Object { $_.Path -like '*Actelyo*' } | ForEach-Object { Write-Host "stopping $($_.Path)"; Stop-Process -Id $_.Id -Force }
+          node .github/qa-functional/erp/qa.cjs
+          if ($LASTEXITCODE) { throw "QA failed ($LASTEXITCODE)" }
+
+      - name: Collect app logs
+        if: always()
+        run: |
+          $dst = 'C:\qa-out\logs\appdata'; New-Item -ItemType Directory -Force $dst | Out-Null
+          Get-ChildItem $env:APPDATA -Directory | Where-Object Name -match 'Actelyo' | ForEach-Object {
+            Write-Host "profile: $($_.FullName)"
+            Get-ChildItem $_.FullName -Recurse -File -Include *.log,*.json,*.env -ErrorAction SilentlyContinue | Where-Object Length -lt 2MB | ForEach-Object {
+              Copy-Item $_.FullName (Join-Path $dst (($_.FullName.Substring($env:APPDATA.Length + 1)) -replace '[\\/: ]','_')) }
+            Get-ChildItem $_.FullName -Recurse -File -ErrorAction SilentlyContinue | Select-Object FullName,Length | Format-Table -AutoSize | Out-String -Width 300 | Set-Content "$dst\profile-files.txt"
+          }
+          Compress-Archive -Path C:\qa-out\logs\* -DestinationPath C:\qa-out\logs.zip -Force
+
+      - name: Publish proofs to a draft release
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "qa-func-erp-${{ github.run_id }}"
+          $r = if (Test-Path C:\qa-out\report.json) { Get-Content C:\qa-out\report.json -Raw | ConvertFrom-Json } else { $null }
+          $lines = @("Functional QA of Actelyo ERP Desktop ${{ steps.cat.outputs.erp_version }} — run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", '')
+          if ($r) { foreach ($s in $r.steps) { $lines += "- $($s.id) [$($s.status)] $($s.name)" }; $lines += ''; $lines += "passed: $($r.passed)" } else { $lines += 'report.json missing' }
+          $lines | Set-Content "$env:RUNNER_TEMP\notes.md"
+          $files = @()
+          if (Test-Path C:\qa-out\report.json) { $files += 'C:\qa-out\report.json' }
+          if (Test-Path C:\qa-out\logs.zip) { $files += 'C:\qa-out\logs.zip' }
+          $files += Get-ChildItem C:\qa-out -File -Include *.docx,*.txt -Recurse -Depth 0 | ForEach-Object FullName
+          $files += Get-ChildItem C:\qa-out\screenshots -File -ErrorAction SilentlyContinue | ForEach-Object FullName
+          $files += Get-ChildItem C:\qa-out\logs -File -ErrorAction SilentlyContinue | ForEach-Object FullName
+          $files = $files | Select-Object -Unique
+          gh release create $tag --draft --target "${{ github.sha }}" --title "QA functional ERP ${{ github.run_id }}" --notes-file "$env:RUNNER_TEMP\notes.md" --repo "${{ github.repository }}" @files
+          if ($LASTEXITCODE) { throw 'release publish failed' }
+
+      - name: Fail job if QA failed
+        if: steps.qa.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,44 @@
+name: QA functional LLM Studio
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-functional-llm]
+    paths: ['.github/qa-functional/llm/**', '.github/workflows/qa-functional-llm.yml']
+permissions:
+  contents: write
+concurrency:
+  group: qa-functional-llm
+  cancel-in-progress: true
+jobs:
+  qa:
+    name: llm-studio functional
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      QA_OUT: ${{ github.workspace }}\qa-out
+      QA_DIR: ${{ github.workspace }}\.github\qa-functional\llm
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/qa-functional/llm
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Catalog, installer, silent install, model
+        shell: pwsh
+        run: ./.github/qa-functional/llm/prepare.ps1
+      - name: Install Playwright (CDP only, no browsers)
+        shell: pwsh
+        working-directory: .github/qa-functional/llm
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm install --no-audit --no-fund
+      - name: Functional QA through the real UI
+        shell: pwsh
+        run: node ./.github/qa-functional/llm/qa.mjs
+      - name: Publish proofs to a draft release
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/qa-functional/llm/publish.ps1

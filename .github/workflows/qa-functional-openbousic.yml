@@ -1,0 +1,44 @@
+name: QA functional OpenBousic
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/qa-functional-openbousic]
+    paths: ['.github/qa-functional/openbousic/**', '.github/workflows/qa-functional-openbousic.yml']
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  qa:
+    runs-on: windows-latest
+    timeout-minutes: 100
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/qa-functional/openbousic
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.20.0'
+      - name: Download, verify, install; start llama-server
+        shell: pwsh
+        run: ./.github/qa-functional/openbousic/setup.ps1
+      - name: Install Playwright
+        shell: pwsh
+        working-directory: .github/qa-functional/openbousic
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install chromium
+      - name: Functional QA (drive the installed app over CDP)
+        shell: pwsh
+        working-directory: .github/qa-functional/openbousic
+        timeout-minutes: 60
+        run: |
+          ./start-llama.ps1 -Tag qa
+          node qa.mjs
+      - name: Collect logs and publish draft proof release
+        if: always()
+        shell: pwsh
+        run: ./.github/qa-functional/openbousic/collect.ps1
