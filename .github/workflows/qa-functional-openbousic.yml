@@ -28,7 +28,9 @@ jobs:
       - name: Install Playwright
         shell: pwsh
         working-directory: .github/qa-functional/openbousic
-        run: npm install --no-audit --no-fund
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install chromium
       - name: Functional QA (drive the installed app over CDP)
         shell: pwsh
         working-directory: .github/qa-functional/openbousic

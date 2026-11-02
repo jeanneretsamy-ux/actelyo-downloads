@@ -19,6 +19,10 @@ const PROMPTS = [
   'write a hello world in Python into hello.py',
   'Use the write_file tool now to create the file hello.py in the project folder with exactly this content: print("Hello, World!")',
 ]
+// Keep the Electron renderer painting even if the runner desktop occludes the window
+// (otherwise requestAnimationFrame stops and Playwright waits/screenshots hang).
+const RENDER_FLAGS = ['--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--disable-features=CalculateNativeWinOcclusion']
+let fallbackBrowser = null
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 fs.mkdirSync(OUT, { recursive: true })
@@ -62,6 +66,7 @@ async function step(name, fn, { critical = true } = {}) {
   } catch (e) {
     rec.ok = false
     rec.detail = `${rec.detail ? rec.detail + ' | ' : ''}ERROR: ${e.message.split('\n')[0]}`
+    try { fs.writeFileSync(path.join(OUT, '..', `dom-fail-${report.steps.length}.html`), await page.content()) } catch {}
     rec.failShot = await shot(`FAIL-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`, { desktop: true })
   }
   delete rec.okOverride
@@ -156,7 +161,7 @@ async function main() {
   report.facts.appExe = APP_EXE
   // 0. Launch the installed app with a CDP port.
   await step('launch installed app (CDP)', async () => {
-    const child = spawn(APP_EXE, ['--remote-debugging-port=9222'], { detached: true, stdio: 'ignore', cwd: path.dirname(APP_EXE) })
+    const child = spawn(APP_EXE, ['--remote-debugging-port=9222', ...RENDER_FLAGS], { detached: true, stdio: 'ignore', cwd: path.dirname(APP_EXE) })
     child.unref()
     let browser = null
     const t0 = Date.now()
@@ -182,8 +187,39 @@ async function main() {
     report.facts.navigatorLanguage = await page.evaluate(() => navigator.language)
     report.facts.windowTitle = await page.title()
     await sleep(3000)
-    await shot('app-started', { desktop: true })
-    return `health=${h.status}, url=${page.url()}, lang=${report.facts.navigatorLanguage}`
+    await page.bringToFront().catch(() => {})
+    try {
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true })
+    } catch (e) {
+      console.log('focus emulation failed: ' + e.message)
+    }
+    report.facts.electronProbe = await page.evaluate(() => new Promise((res) => {
+      const t = setTimeout(() => res({ raf: false, visibility: document.visibilityState, hasFocus: document.hasFocus() }), 3000)
+      requestAnimationFrame(() => { clearTimeout(t); res({ raf: true, visibility: document.visibilityState, hasFocus: document.hasFocus() }) })
+    })).catch((e) => ({ error: e.message }))
+    fs.writeFileSync(path.join(OUT, '..', 'electron-dom-start.html'), await page.content().catch(() => ''))
+    let electronShotOk = true
+    try {
+      await page.screenshot({ path: path.join(OUT, `${String(++shotIndex).padStart(2, '0')}-app-started-electron.png`), timeout: 15000 })
+    } catch (e) {
+      electronShotOk = false
+      report.facts.electronScreenshotError = e.message.split('\n')[0]
+    }
+    await shot('app-started-desktop', { desktop: true })
+    report.facts.driver = 'electron-cdp'
+    if (!electronShotOk || !report.facts.electronProbe?.raf) {
+      // The Electron renderer does not paint for CDP: drive the same server's web UI
+      // with Playwright Chromium instead (same backend, same state).
+      fallbackBrowser = await chromium.launch({ headless: false })
+      const ctx = await fallbackBrowser.newContext({ viewport: { width: 1400, height: 900 }, locale: report.facts.navigatorLanguage || 'en-US' })
+      page = await ctx.newPage()
+      await page.goto(ORIGIN + '/')
+      await page.waitForLoadState('networkidle').catch(() => {})
+      report.facts.driver = 'chromium-fallback'
+      await shot('app-started-chromium')
+    }
+    return `health=${h.status}, url=${page.url()}, lang=${report.facts.navigatorLanguage}, driver=${report.facts.driver}, electronProbe=${JSON.stringify(report.facts.electronProbe)}`
   })
 
   // 1. Onboarding: add a llama.cpp provider.

@@ -24,7 +24,7 @@ Get-ChildItem $out -Filter *.log | ForEach-Object { Move-Item $_.FullName $logs 
 # Flatten for release assets (names must be unique).
 $assets = Join-Path $env:RUNNER_TEMP 'release-assets'
 New-Item -ItemType Directory -Force -Path $assets | Out-Null
-Get-ChildItem $out -Recurse -File | ForEach-Object { Copy-Item $_.FullName (Join-Path $assets $_.Name) -Force }
+Get-ChildItem $out -Recurse -File | Where-Object Length -gt 0 | ForEach-Object { Copy-Item $_.FullName (Join-Path $assets $_.Name) -Force }
 Compress-Archive -Path "$out\*" -DestinationPath (Join-Path $assets 'qa-out.zip') -Force
 
 $tag = "qa-func-openbousic-$env:GITHUB_RUN_ID"
