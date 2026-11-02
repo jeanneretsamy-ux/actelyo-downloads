@@ -8,7 +8,7 @@
     1. Liste les applications Actelyo installées.
     2. Désinstalle les anciennes applications qui ne font plus partie de la gamme
        (ex. Actelyo LLMQushu, ancien « Actelyo » 1.0.x), après votre confirmation.
-    3. Télécharge les 4 nouveaux installateurs, vérifie leur SHA-256 et les installe.
+    3. Télécharge les 5 nouveaux installateurs, vérifie leur SHA-256 et les installe.
        Ils remplacent automatiquement les anciennes versions (même identifiant d'application).
     4. Rafraîchit le cache des icônes Windows pour afficher les nouveaux logos.
 
@@ -30,7 +30,10 @@ $produits = @(
      Parties = @("https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part01",
                  "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part02",
                  "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part03")
-     Sha256 = '3a0f43ac3152eb6fa785eb99f5a799010910d54c17e735d8f77f223ca1073ad1' }
+     Sha256 = '3a0f43ac3152eb6fa785eb99f5a799010910d54c17e735d8f77f223ca1073ad1' },
+  @{ Nom = 'Actelyo OpenBousic';   Motif = '^Actelyo OpenBousic';  Version = '2.0.161'
+     Parties = @("$base/desktop-openbousic-v2.0.161/Actelyo-OpenBousic-Setup-2.0.161-x64.exe")
+     Sha256 = 'd30a0ffddbb0af3f90e54d2661b07d320b45c8c86e0a5b9bb487ef7ee4651607' }
 )
 # Applications Actelyo à conserver même si elles ne sont pas dans la liste ci-dessus
 $aConserver = '^Actelyo RAG-Anything'

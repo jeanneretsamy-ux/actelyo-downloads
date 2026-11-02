@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-02T00:00:00.000Z",
+  "revision": "2026-11-02T17:00:00.000Z",
   "items": [
     {
       "id": "erp",
@@ -76,6 +76,21 @@
       "file": "Actelyo-LLM-Desktop-Setup-3.0.2-x64.exe",
       "bytes": 217487651,
       "sha256": "cca421dac180a52db72a2fb1a5ea9ed952702bd707cefe3317ff10504aaa7ba4"
+    },
+    {
+      "id": "openbousic",
+      "name": "Actelyo OpenBousic",
+      "category": "desktop",
+      "version": "2.0.161",
+      "description": "Assistant de développement autonome pour modèles locaux : planification, exécution, terminal, sessions et interface web.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/Actelyo-OpenBousic",
+      "sourcePrivate": true,
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-openbousic-v2.0.161/Actelyo-OpenBousic-Setup-2.0.161-x64.exe",
+      "file": "Actelyo-OpenBousic-Setup-2.0.161-x64.exe",
+      "bytes": 259269213,
+      "sha256": "d30a0ffddbb0af3f90e54d2661b07d320b45c8c86e0a5b9bb487ef7ee4651607",
+      "note": "Logo Actelyo OpenBousic (jaune) sur l’exécutable, la fenêtre, la barre des tâches, l’installateur et les raccourcis. Serveur local et interface intégrés, Node.js inclus. Démarre en mode sécurisé (accessible uniquement depuis ce PC). Un serveur de modèle compatible OpenAI (Ollama, llama.cpp, vLLM…) reste à configurer."
     },
     {
       "id": "qwen-small",
