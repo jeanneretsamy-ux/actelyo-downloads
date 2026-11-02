@@ -23,8 +23,11 @@ jobs:
         with:
           node-version: '22.20.0'
       - name: Download, verify, install; start llama-server
+        # The result gate is tested separately so diagnostic runs cannot mask a failure.
         shell: pwsh
         run: ./.github/qa-functional/openbousic/setup.ps1
+      - name: Test functional result gate
+        run: node --test .github/qa-functional/openbousic/qa-result.test.mjs
       - name: Install Playwright
         shell: pwsh
         working-directory: .github/qa-functional/openbousic

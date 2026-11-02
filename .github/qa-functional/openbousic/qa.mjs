@@ -5,6 +5,7 @@
 import { chromium } from 'playwright'
 import { spawn, execFileSync } from 'node:child_process'
 import fs from 'node:fs'
+import { functionalQaPassed } from './qa-result.mjs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -371,7 +372,7 @@ async function main() {
     return `reply in ${r.seconds}s (${reply.length} chars), tools=${JSON.stringify(report.facts.chat1.toolCalls)}: ${reply.slice(0, 160).replace(/\s+/g, ' ')}`
   }, { critical: false })
 
-  await step('3e (bonus) agent wrote hello.py', async (rec) => {
+  await step('3e agent wrote hello.py', async (rec) => {
     const file = path.join(PROJECT_DIR, 'hello.py')
     let attempts = 1
     if (!fs.existsSync(file)) {
@@ -427,9 +428,9 @@ try {
   report.aborted = e.message
 }
 report.endedAt = new Date().toISOString()
-report.passed = report.steps.filter((s) => !s.name.includes('(bonus)')).every((s) => s.ok)
+report.passed = functionalQaPassed(report)
 save()
 const md = ['| Step | Result | Detail |', '|---|---|---|', ...report.steps.map((s) => `| ${s.name} | ${s.ok ? 'PASS' : 'FAIL'} | ${String(s.detail).replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 300)} |`)].join('\n')
 fs.writeFileSync(path.join(process.env.QA_OUT || 'qa-out', 'summary.md'), md + '\n')
 console.log('\n' + md)
-process.exit(0)
+process.exit(report.passed ? 0 : 1)
