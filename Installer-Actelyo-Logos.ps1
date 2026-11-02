@@ -20,9 +20,9 @@ $produits = @(
   @{ Nom = 'Actelyo ERP Desktop';  Motif = '^Actelyo ERP';         Version = '1.8.2'
      Parties = @("$base/desktop-erp-v1.8.2/Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe")
      Sha256 = 'dad4952a22729e3943efe86357b8e500b6764f51ae459f2862c8e9d1711fd97a' },
-  @{ Nom = 'Actelyo LLM Studio';   Motif = '^Actelyo LLM Desktop'; Version = '3.0.2'
-     Parties = @("$base/desktop-llm-v3.0.2/Actelyo-LLM-Desktop-Setup-3.0.2-x64.exe")
-     Sha256 = 'cca421dac180a52db72a2fb1a5ea9ed952702bd707cefe3317ff10504aaa7ba4' },
+  @{ Nom = 'Actelyo LLM Studio';   Motif = '^Actelyo LLM Desktop'; Version = '3.0.3'
+     Parties = @("$base/desktop-llm-v3.0.3/Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe")
+     Sha256 = '904290a09bd873d4f57efdbe5c0baa7d673c36bc727a0bd9d2fd9a770429ab8d' },
   @{ Nom = 'Actelyo RAG Desktop';  Motif = '^Actelyo RAG Desktop'; Version = '1.0.3'
      Parties = @("$base/desktop-rag-v1.0.3/Actelyo-RAG-Desktop-Setup-1.0.3-x64.exe")
      Sha256 = 'f2b1d80d32157622bc1c4dc331de00a8beb7f1166215cc9d3c7310434941633b' },
