@@ -37,7 +37,7 @@ async function shot(name, s) {
 async function uiError() { try { return await page.evaluate(() => { const e = document.querySelector('#error'); return e && !e.hidden ? e.textContent : null; }); } catch { return null; } }
 async function clearNotice() { await page.evaluate(() => { for (const id of ['#error', '#notice']) { const e = document.querySelector(id); e.hidden = true; e.textContent = ''; } }); }
 const status = () => page.evaluate(() => window.actelyoLLM.status());
-async function nav(view) { await page.click(`nav button[data-view="${view}"]`); await page.waitForSelector(`#${view}-view:not([hidden])`, { timeout: 10000 }); }
+async function nav(view) { await page.click(`aside button[data-view="${view}"]`); await page.waitForSelector(`#${view}-view:not([hidden])`, { timeout: 10000 }); }
 
 async function step(id, title, fn, { required = true } = {}) {
   const s = { id, title, required, ok: false, detail: '', shots: [] };
@@ -174,11 +174,12 @@ async function main() {
     if (!pick) throw Error('no Qwen model in library');
     const row = page.locator('.model-row').filter({ hasText: pick.path }).first();
     await row.getByRole('button', { name: 'Charger', exact: true }).click();
-    await page.waitForFunction(p => {
+    await page.waitForFunction(async id => {
       const e = document.querySelector('#error'); if (!e.hidden && e.textContent) return true;
-      return [...document.querySelectorAll('.model-row')].some(r => r.textContent.includes(p) && r.textContent.includes('● Chargé'));
-    }, pick.path, { timeout: 240000, polling: 500 });
+      const st = await window.actelyoLLM.status(); return st.models.some(m => m.id === id && m.loaded);
+    }, pick.id, { timeout: 240000, polling: 1000 });
     const err = await uiError(); if (err) throw Error('UI error: ' + err);
+    await page.waitForFunction(p => [...document.querySelectorAll('.model-row')].some(r => r.textContent.includes(p) && /Décharger/.test(r.textContent)), pick.path, { timeout: 10000 });
     loadedId = pick.id;
     const after = await status();
     return { id: pick.id, runtime: after.runtime, badge: await page.textContent('#model-badge'), active: after.activeRequests };
@@ -263,6 +264,16 @@ async function main() {
     const err = await uiError(); const result = await page.textContent('#benchmark-result');
     if (err) throw Error('UI error: ' + err + ' | result panel still shows: ' + result.slice(0, 200));
     return { result: result.slice(0, 800) };
+  }, { required: false });
+
+  await step('04d-benchmark-repro-api', 'Repro of 04c through the API: same prompt and max_tokens=64 as the benchmark', async () => {
+    const models = await (await fetch(base + '/v1/models')).json();
+    const loaded = models.data.find(m => m.state === 'loaded');
+    const r = await fetch(base + '/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: loaded.id, messages: [{ role: 'system', content: 'Vous êtes un assistant utile. Répondez dans la langue de l’utilisateur.' }, { role: 'user', content: 'Réponds en une phrase : pourquoi le ciel est-il bleu ?' }], max_tokens: 64 }) });
+    const data = await r.json();
+    fs.writeFileSync(path.join(OUT, 'api-benchmark-repro.json'), JSON.stringify(data, null, 2));
+    const msg = data.choices?.[0]?.message || {};
+    return { http: r.status, finish_reason: data.choices?.[0]?.finish_reason, contentChars: (msg.content || '').length, reasoningChars: (msg.reasoning_content || '').length, completion_tokens: data.usage?.completion_tokens, reasoningStart: (msg.reasoning_content || '').slice(0, 160) };
   }, { required: false });
 
   // ---------- 5. logs + clean exit ----------
