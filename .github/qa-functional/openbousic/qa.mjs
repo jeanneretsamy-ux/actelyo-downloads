@@ -199,12 +199,19 @@ async function main() {
       requestAnimationFrame(() => { clearTimeout(t); res({ raf: true, visibility: document.visibilityState, hasFocus: document.hasFocus() }) })
     })).catch((e) => ({ error: e.message }))
     fs.writeFileSync(path.join(OUT, '..', 'electron-dom-start.html'), await page.content().catch(() => ''))
-    let electronShotOk = true
-    try {
-      await page.screenshot({ path: path.join(OUT, `${String(++shotIndex).padStart(2, '0')}-app-started-electron.png`), timeout: 15000 })
-    } catch (e) {
-      electronShotOk = false
-      report.facts.electronScreenshotError = e.message.split('\n')[0]
+    let electronShotOk = false
+    const shotName = `${String(++shotIndex).padStart(2, '0')}-app-started-electron.png`
+    report.facts.electronScreenshotErrors = []
+    for (let attempt = 1; attempt <= 4 && !electronShotOk; attempt++) {
+      try {
+        await page.bringToFront().catch(() => {})
+        await sleep(2000)
+        await page.screenshot({ path: path.join(OUT, shotName), timeout: 20000 })
+        electronShotOk = true
+        report.facts.electronScreenshotAttempts = attempt
+      } catch (e) {
+        report.facts.electronScreenshotErrors.push(e.message.split('\n')[0])
+      }
     }
     await shot('app-started-desktop', { desktop: true })
     report.facts.driver = 'electron-cdp'
