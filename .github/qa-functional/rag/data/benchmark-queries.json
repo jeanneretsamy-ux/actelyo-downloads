@@ -1,0 +1,6 @@
+[
+  {"id": "fr-societe", "language": "fr", "query": "Que faut-il pour constituer une société et répartir le capital entre associés ?", "article": "qa-societes-11"},
+  {"id": "fr-bail", "language": "fr", "query": "Quelles conditions le bail commercial fixe-t-il pour le loyer et le renouvellement ?", "article": "qa-baux-22"},
+  {"id": "fr-donnees", "language": "fr", "query": "Combien de temps peut-on conserver les données personnelles des clients ?", "article": "qa-donnees-33"},
+  {"id": "fr-travail", "language": "fr", "query": "La période d'essai du salarié peut-elle être rompue ?", "article": "qa-travail-44"}
+]
