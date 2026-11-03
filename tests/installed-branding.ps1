@@ -33,11 +33,27 @@ public static class ActelyoIconProof {
    }return total/(32*32*4*255.0);
   }
  }
+ public static double Hue(Bitmap image) {
+  double x=0,y=0,total=0;
+  using(Bitmap b=new Bitmap(image,32,32))for(int row=0;row<32;row++)for(int col=0;col<32;col++) {
+   Color c=b.GetPixel(col,row);int chroma=Math.Max(c.R,Math.Max(c.G,c.B))-Math.Min(c.R,Math.Min(c.G,c.B));
+   if(c.A<64||chroma<40)continue;
+   double weight=chroma*c.A/(255.0*255),angle=c.GetHue()*Math.PI/180;
+   x+=weight*Math.Cos(angle);y+=weight*Math.Sin(angle);total+=weight;
+  }
+  if(total<1)return -1000;
+  return (Math.Atan2(y,x)*180/Math.PI+360)%360;
+ }
+ public static double HueDistance(Bitmap a,Bitmap b) {
+  double x=Hue(a),y=Hue(b);if(x<0||y<0)return 360;
+  double delta=Math.Abs(x-y);return Math.Min(delta,360-delta);
+ }
 }
 '@ -ReferencedAssemblies System.Drawing
 $references=@{erp='actelyo-erp.ico';llm='actelyo-llm.ico';rag='actelyo-rag.ico';'law-harness'='actelyo-law.ico';openbousic='actelyo-imperium.ico'}
 $names=@{erp='Actelyo ERP Desktop.lnk';llm='Actelyo LLM Desktop.lnk';rag='Actelyo RAG Desktop.lnk';'law-harness'='Actelyo Law Harness.lnk';openbousic='Actelyo OpenBousic.lnk'}
 $limit=0.12
+$hueLimit=18
 if($SelfTest){
  $red=[ActelyoIconProof]::Extract((Join-Path $repository '.github/branding/actelyo-llm.ico'),$false,32)
  $green=[ActelyoIconProof]::Extract((Join-Path $repository '.github/branding/actelyo-erp.ico'),$false,32)
@@ -46,7 +62,12 @@ if($SelfTest){
   if([ActelyoIconProof]::Difference($red,$red) -ne 0){throw 'Identical native icon rejected'}
   if([ActelyoIconProof]::Difference($green,$red) -le $limit){throw 'Wrong product color accepted'}
   if([ActelyoIconProof]::Difference($blank,$red) -le $limit){throw 'Empty icon accepted'}
-  'PASS native icon identity, wrong-product rejection and missing-image rejection'
+  foreach($left in $references.Keys){foreach($right in $references.Keys){if($left -eq $right){continue}
+   $a=[ActelyoIconProof]::Extract((Join-Path $repository ('.github/branding/'+$references[$left])),$false,32)
+   $b=[ActelyoIconProof]::Extract((Join-Path $repository ('.github/branding/'+$references[$right])),$false,32)
+   try{if([ActelyoIconProof]::Difference($a,$b) -le $limit -and [ActelyoIconProof]::HueDistance($a,$b) -le $hueLimit){throw ('Wrong product accepted: '+$left+' / '+$right)}}finally{$a.Dispose();$b.Dispose()}
+  }}
+  'PASS native icon identity, all 20 wrong-product swaps and missing-image rejection'
  }finally{$red.Dispose();$green.Dispose();$blank.Dispose()}
  return
 }
@@ -81,7 +102,8 @@ foreach($app in $inputData.applications){
     $bitmap=[ActelyoIconProof]::Extract($entry.file,$entry.shell,32)
     $image=Join-Path $out ($app.id+'-'+$entry.kind+'.png');$bitmap.Save($image,[Drawing.Imaging.ImageFormat]::Png)
     $difference=[ActelyoIconProof]::Difference($bitmap,$expected)
-    $check=@{kind=$entry.kind;path=$entry.file;status=$(if($difference -le $limit){'pass'}else{'fail'});image=[IO.Path]::GetFileName($image);normalizedDifference=$difference;maximumDifference=$limit}
+    $hueDistance=[ActelyoIconProof]::HueDistance($bitmap,$expected)
+    $check=@{kind=$entry.kind;path=$entry.file;status=$(if($difference -le $limit -and $hueDistance -le $hueLimit){'pass'}else{'fail'});image=[IO.Path]::GetFileName($image);normalizedDifference=$difference;maximumDifference=$limit;hueDistance=$hueDistance;maximumHueDistance=$hueLimit}
     if($entry.shell){$check.target=$entry.target;$check.iconLocation=$entry.iconLocation}
     $row.checks+= $check
     $tiles.Add(@{id=$app.id;kind=$entry.kind;image=$image;status=$check.status})
