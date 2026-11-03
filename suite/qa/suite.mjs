@@ -244,8 +244,19 @@ try {
   });
   await step('simultaneous-coexistence', ['llm-models','erp-launch','law-launch','rag-launch','openbousic-launch'], async () => {
     const identities=[];
-    for(const [id,instance] of active){assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');identities.push({id,...instance.identity});}
+    for(const [id,instance] of active){
+      assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
+      let uiError;
+      try{
+        await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),{timeout:60000});
+        await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
+      }catch(e){uiError=String(e);}
+      await instance.page.screenshot({path:path.join(out,id+'-ready.png')});
+      identities.push({id,...instance.identity,uiReady:!uiError,uiError,url:instance.page.url()});
+    }
+    report.uiChecks=identities;save();
     assert.equal(identities.length,5,'All five GUI applications must remain running');
+    assert(identities.every(x=>x.uiReady),'An installed interface is blank or unusable: '+JSON.stringify(identities.filter(x=>!x.uiReady)));
     await json(studio.replace(/\/v1\/?$/,'')+'/health');
     return {applications:identities,secondaryEngine:'exercised via ERP, not a separate GUI'};
   });
