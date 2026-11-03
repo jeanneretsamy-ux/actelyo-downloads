@@ -1,14 +1,63 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "headroomGiB": 3,
-  "models": ["qwen-small", "nomic-embeddings"],
+  "models": [
+    "qwen-small",
+    "nomic-embeddings"
+  ],
   "applications": [
-    {"id":"llm","registryPattern":"^Actelyo LLM Desktop","reserveGiB":2,"executables":["Actelyo LLM.exe"]},
-    {"id":"rag-anything","registryPattern":"^Actelyo RAG-Anything","reserveGiB":1,"executables":[],"requiredFiles":["python/python.exe","worker.py"]},
-    {"id":"rag","registryPattern":"^Actelyo RAG Desktop","reserveGiB":3,"executables":["Actelyo RAG.exe"]},
-    {"id":"erp","registryPattern":"^Actelyo ERP","reserveGiB":2,"executables":["Actelyo ERP.exe","Actelyo ERP Desktop.exe","Actelyo.exe"]},
-    {"id":"openbousic","registryPattern":"^Actelyo OpenBousic","reserveGiB":2,"executables":["Actelyo OpenBousic.exe"]},
-    {"id":"law-harness","registryPattern":"^Actelyo Law Harness","reserveGiB":14,"executables":["Actelyo Law Harness.exe"]}
+    {
+      "id": "llm",
+      "registryPattern": "^Actelyo LLM Desktop",
+      "reserveGiB": 2,
+      "executables": [
+        "Actelyo LLM.exe"
+      ]
+    },
+    {
+      "id": "rag-anything",
+      "registryPattern": "^Actelyo RAG-Anything",
+      "reserveGiB": 1,
+      "executables": [],
+      "requiredFiles": [
+        "python/python.exe",
+        "worker.py"
+      ]
+    },
+    {
+      "id": "rag",
+      "registryPattern": "^Actelyo RAG Desktop",
+      "reserveGiB": 3,
+      "executables": [
+        "Actelyo RAG.exe"
+      ]
+    },
+    {
+      "id": "erp",
+      "registryPattern": "^Actelyo ERP",
+      "reserveGiB": 2,
+      "executables": [
+        "Actelyo ERP.exe",
+        "Actelyo ERP Desktop.exe",
+        "Actelyo.exe"
+      ]
+    },
+    {
+      "id": "openbousic",
+      "registryPattern": "^Actelyo OpenBousic",
+      "reserveGiB": 2,
+      "executables": [
+        "Actelyo OpenBousic.exe"
+      ]
+    },
+    {
+      "id": "law-harness",
+      "registryPattern": "^Actelyo Law Harness",
+      "reserveGiB": 14,
+      "executables": [
+        "Actelyo Law Harness.exe"
+      ]
+    }
   ]
 }

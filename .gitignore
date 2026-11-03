@@ -3,3 +3,6 @@ suite/catalog.json
 suite/Paquets-Actelyo/
 suite/Rapports/
 suite-build/
+/suite-proof/
+/erp-proof/
+/out/

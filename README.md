@@ -4,7 +4,7 @@
 
 ## Kit commun Windows
 
-[Télécharger Actelyo Suite 1.0.0](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.0/Actelyo-Suite-1.0.0-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Pour un utilisateur, ce ZIP contient les scripts et le moteur QA nécessaires ; le ZIP « Code » du dépôt est destiné aux développeurs.
+[Télécharger Actelyo Suite 1.0.1](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.1/Actelyo-Suite-1.0.1-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Pour un utilisateur, ce ZIP contient les scripts et le moteur QA nécessaires ; le ZIP « Code » du dépôt est destiné aux développeurs.
 
 Le kit installe les six composants du catalogue : LLM Studio, ERP, RAG Desktop, RAG-Anything, Law Harness et OpenBousic. Il vérifie les empreintes, préserve les versions déjà à jour et contrôle l’espace avant chaque installation. Prévoir environ **35 Go libres** sur un Windows x64 neuf ; le plan affiche le besoin exact par disque. Les deux modèles publics de test sont téléchargés séparément.
 
