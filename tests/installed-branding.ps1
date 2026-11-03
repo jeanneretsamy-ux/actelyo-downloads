@@ -1,5 +1,6 @@
 [CmdletBinding()]
-param([string]$InstalledJson='', [switch]$SelfTest)
+param([string]$InstalledJson='', [switch]$SelfTest,
+ [ValidateSet('erp','llm','rag','law-harness','openbousic')][string[]]$Apps=@('erp','llm','rag','law-harness','openbousic'))
 $ErrorActionPreference='Stop'
 $repository=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Add-Type -AssemblyName System.Drawing
@@ -74,11 +75,11 @@ if($SelfTest){
 if(-not $InstalledJson){throw 'Installed application receipt required'}
 $inputData=Get-Content -LiteralPath $InstalledJson -Raw -Encoding UTF8 | ConvertFrom-Json
 $out=Join-Path $inputData.reportDirectory 'branding';New-Item -ItemType Directory -Path $out -Force | Out-Null
-$report=[ordered]@{schemaVersion=1;status='running';catalogRevision=$inputData.catalog.revision;sourceCommit=(& git -C $repository rev-parse HEAD);scope='Unmodified public installers; native Windows icons and fresh desktop/Start menu shortcuts, with no repair before measurement.';applications=@()}
+$report=[ordered]@{schemaVersion=1;status='running';expectedApplications=$Apps;catalogRevision=$inputData.catalog.revision;sourceCommit=(& git -C $repository rev-parse HEAD);scope='Unmodified installers identified by catalogue SHA-256; native Windows icons and fresh desktop/Start menu shortcuts, with no repair before measurement.';applications=@()}
 $shell=New-Object -ComObject WScript.Shell
 $tiles=New-Object 'System.Collections.Generic.List[object]'
 foreach($app in $inputData.applications){
- if(-not $references.ContainsKey($app.id)){continue}
+ if($app.id -notin $Apps){continue}
  $row=[ordered]@{id=$app.id;version=$app.version;status='running';checks=@()}
  $expected=$null
  try {
@@ -115,7 +116,7 @@ foreach($app in $inputData.applications){
  $report.applications+= $row
  Write-Host ($row.status.ToUpper()+' branding '+$app.id+$(if($row.error){': '+$row.error}else{''}))
 }
-$report.status=if($report.applications.Count -eq 5 -and -not @($report.applications | Where-Object {$_.status -ne 'pass'}).Count){'pass'}else{'fail'}
+$report.status=if($report.applications.Count -eq $Apps.Count -and -not @($report.applications | Where-Object {$_.status -ne 'pass'}).Count){'pass'}else{'fail'}
 $report.finishedAt=Get-Date -Format o
 $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $out 'branding.json') -Encoding UTF8
 $sheet=New-Object Drawing.Bitmap(800,540);$g=[Drawing.Graphics]::FromImage($sheet);$font=New-Object Drawing.Font('Segoe UI',10)
