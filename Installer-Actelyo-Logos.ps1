@@ -26,11 +26,11 @@ $produits = @(
   @{ Nom = 'Actelyo RAG Desktop';  Motif = '^Actelyo RAG Desktop'; Version = '1.0.4'
      Parties = @("https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.4/Actelyo-RAG-Desktop-Setup-1.0.4-x64.exe")
      Sha256 = '83ea7d61e9ee6b52bca7c7e913007d515d220ff0fbf2620124e20d1dd1121094' },
-  @{ Nom = 'Actelyo Law Harness';  Motif = '^Actelyo Law Harness'; Version = '2026.11.2'
-     Parties = @("https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part01",
-                 "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part02",
-                 "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.2/Actelyo-Law-Harness-Setup-2026.11.2-x64.exe.part03")
-     Sha256 = '3a0f43ac3152eb6fa785eb99f5a799010910d54c17e735d8f77f223ca1073ad1' },
+  @{ Nom = 'Actelyo Law Harness';  Motif = '^Actelyo Law Harness'; Version = '2026.11.3'
+     Parties = @("https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.3/Actelyo-Law-Harness-Setup-2026.11.3-x64.exe.part01",
+                 "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.3/Actelyo-Law-Harness-Setup-2026.11.3-x64.exe.part02",
+                 "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.3/Actelyo-Law-Harness-Setup-2026.11.3-x64.exe.part03")
+     Sha256 = 'bc039dc1bad8b6a5fa5955966d2e68b06596897495fecbbe721488480ab9e8c3' },
   @{ Nom = 'Actelyo OpenBousic';   Motif = '^Actelyo OpenBousic';  Version = '2.0.162'
      Parties = @("$base/desktop-openbousic-v2.0.162/Actelyo-OpenBousic-Setup-2.0.162-x64.exe")
      Sha256 = '4fefa3993b7995c475f69be31cb01f8587f9f2e0fbd81b98727ced7b82941e48' }
