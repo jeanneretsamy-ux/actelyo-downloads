@@ -248,7 +248,7 @@ try {
       assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
       let uiError;
       try{
-        await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),{timeout:60000});
+        await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
         await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
       }catch(e){uiError=String(e);}
       await instance.page.screenshot({path:path.join(out,id+'-ready.png')});
