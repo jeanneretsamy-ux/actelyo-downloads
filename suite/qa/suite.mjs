@@ -176,11 +176,15 @@ try {
   await step('erp-law-source-binding', ['erp-shared-model-and-retrieval','law-launch'], async () => {
     const root = path.join(applications.get('law-harness').directory,'resources','agent-payload');
     const source = path.join(root,'hermes-agent');
-    const python = [path.join(root,'venv','Scripts','python.exe'),path.join(root,'python','python.exe')].find(p=>fs.existsSync(p));
-    assert(python, 'Installed Law Harness Python missing');
+    // Use the relocatable interpreter bundled with the installed application.
+    // The venv launcher retains its build-machine interpreter path on Windows.
+    const tools=path.join(root,'tools');
+    const interpreters=fs.readdirSync(tools,{withFileTypes:true}).filter(e=>e.isDirectory() && e.name.startsWith('python-')).map(e=>path.join(tools,e.name,'python.exe')).filter(p=>fs.existsSync(p));
+    assert.equal(interpreters.length,1,'Expected one installed Law Harness portable Python');
+    const python=interpreters[0];
     const sources = retrieved.sources.map((s,i)=>({id:'source-'+i,document_id:s.id,name:s.name,url:pathToFileURL(fixture).href,text:s.text,page:s.page}));
     const file = path.join(out,'erp-to-law-sources.json'); fs.writeFileSync(file,JSON.stringify(sources));
-    const env = {...clean,HERMES_HOME:path.join(profiles,'law-harness','hermes')};
+    const env = {...clean,HERMES_HOME:path.join(profiles,'law-harness','hermes'),PYTHONPATH:[source,path.join(root,'venv','Lib','site-packages')].join(path.delimiter)};
     const code='import runpy,sys;sys.path.insert(0,sys.argv.pop(1));runpy.run_module("hermes_cli.atelier",run_name="__main__")';
     const call = async args => JSON.parse(await command(python,['-c',code,source,...args],source,env));
     const passages = await call(['catalog',file]); const selected = passages.filter(p=>p.quote.includes(marker) && p.quote.includes('03/11/2026'));
@@ -234,7 +238,7 @@ try {
     const origin='http://127.0.0.1:'+openPort;
     const models=await json(origin+'/api/providers/models?url='+encodeURIComponent(studio));
     assert(models.models?.some(m=>m.id===chatId),'OpenBousic cannot discover the real shared model');
-    const result=await json(origin+'/api/providers/test-params',{url:studio,model:chatId,backend:'llamacpp',mode:'non-thinking',modelConfig:{maxTokens:128,nonThinkingEnabled:true}}, {},60000);
+    const result=await json(origin+'/api/providers/test-params',{url:studio,model:chatId,backend:'lmstudio',mode:'non-thinking',modelConfig:{maxTokens:24,nonThinkingEnabled:true,nonThinkingQueryParams:JSON.stringify({chat_template_kwargs:{enable_thinking:false}})}}, {},60000);
     assert(result.success && result.message?.content?.trim(),'OpenBousic shared model generation failed');
     return {model:chatId,reply:result.message.content,scope:'Provider generation path, not autonomous file editing or browser control'};
   });
