@@ -1,0 +1,10 @@
+const fs=require('node:fs'),path=require('node:path'),{isDeepStrictEqual}=require('node:util');
+const root=path.resolve(__dirname,'..'),source=path.join(root,'catalog.json'),fallback=path.join(root,'docs/desktop-catalog.json');
+const mode=process.argv[2]||'--check';
+if(!['--check','--write'].includes(mode))throw Error('Use --check or --write');
+const bytes=fs.readFileSync(source,'utf8'),catalog=JSON.parse(bytes.replace(/^\uFEFF/,''));
+if(catalog.schemaVersion!==1||!Array.isArray(catalog.items))throw Error('Invalid primary catalogue');
+if(mode==='--write')fs.writeFileSync(fallback,bytes);
+const embedded=JSON.parse(fs.readFileSync(fallback,'utf8').replace(/^\uFEFF/,''));
+if(!isDeepStrictEqual(embedded,catalog))throw Error('The public portal fallback serves a different catalogue. Run node scripts/sync-download-catalog.cjs --write and include docs/desktop-catalog.json.');
+console.log('PASS public portal fallback matches all current versions, URLs, SHA-256 values and kit link');

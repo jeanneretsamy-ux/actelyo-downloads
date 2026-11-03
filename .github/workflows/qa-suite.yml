@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/unified-install-qa, codex/download-branding-qa]
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
   pull_request:
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
 permissions:
   contents: read
 concurrency:
@@ -29,8 +29,14 @@ jobs:
           if ($LASTEXITCODE) { throw 'Windows PowerShell core checks failed' }
           & pwsh -NoProfile -File tests/suite-core.ps1
           if ($LASTEXITCODE) { throw 'PowerShell core checks failed' }
+      - name: Public portal fallback serves the corrected versions
+        run: node scripts/sync-download-catalog.cjs --check
       - name: Restore locked QA dependencies
         run: npm ci --prefix suite/qa/runtime --ignore-scripts --no-audit --no-fund
+      - name: Download cards stay current when the primary catalogue is unavailable
+        env:
+          ACTELYO_QA_PORTAL_OUT: suite-proof
+        run: node tests/download-portal.mjs
       - name: Native icon comparator rejects blank and wrong-product icons
         run: |
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/installed-branding.ps1 -SelfTest
@@ -60,6 +66,7 @@ jobs:
             suite-proof/installed.json
             suite-proof/qa.json
             suite-proof/rapport.html
+            suite-proof/portal-fallback.json
             suite-proof/*.png
             suite-proof/*-install.log
             suite-proof/*-runtime.log

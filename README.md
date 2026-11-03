@@ -16,6 +16,8 @@ Installateurs Windows, modèles GGUF et kit de services Docker. Le catalogue `ca
 
 Le kit ZIP télécharge les applications et modèles, et assemble les parties de Law Harness. Les données utilisateur, corpus et poids privés ne sont pas distribués. Les modèles publics restent séparés des installateurs.
 
+Pour maintenir le catalogue, modifier `catalog.json` puis exécuter `node scripts/sync-download-catalog.cjs --write` et inclure `docs/desktop-catalog.json` dans le même changement. La QA vérifie cette égalité, le parcours de secours du portail dans un vrai navigateur, les icônes Windows des installateurs/EXE/raccourcis et les échanges techniques entre applications.
+
 Actelyo LLM possède sa propre interface et utilise llama.cpp. Son connecteur LM Studio emploie le SDK ouvert ; l'interface propriétaire LM Studio n'est pas incluse.
 
 Docker fournit des services, et les interfaces graphiques Windows utilisent les EXE. Voir les limites de validation dans le LISEZ-MOI du kit Docker.
