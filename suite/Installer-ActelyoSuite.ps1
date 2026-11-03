@@ -5,7 +5,8 @@ param(
     [string]$Destination='',
     [string]$ReportDirectory='',
     [switch]$IncludeTestModels,
-    [switch]$Accept
+    [switch]$Accept,
+    [switch]$SkipVerification
 )
 $ErrorActionPreference='Stop'
 if (-not $Destination) { $Destination=Join-Path $PSScriptRoot 'Paquets-Actelyo' }
@@ -18,6 +19,7 @@ New-Item -ItemType Directory -Path $ReportDirectory -Force | Out-Null
 $reportPath=Join-Path $ReportDirectory 'installation.json'
 function Save-Report { Write-SuiteJson $report $reportPath }
 try {
+    if ($Mode -eq 'Verify' -and $SkipVerification) { throw 'Verify ne peut pas ignorer la QA.' }
     if (-not [Environment]::Is64BitOperatingSystem -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { throw 'Ce kit cible Windows x64.' }
     $suite=Read-SuiteJson (Join-Path $PSScriptRoot 'suite.json')
     $catalog=Read-SuiteJson (Join-Path $PSScriptRoot 'catalog.json')
@@ -43,7 +45,14 @@ try {
         if (-not $upToDate) { $pending+= $definition }
     }
     $spaceDefinitions=if($Mode -eq 'Download'){@()}else{$pending}
-    $report.space=@(Get-SuiteSpacePlan $items $spaceDefinitions $Destination (Join-Path $env:LOCALAPPDATA 'Programs') $suite.headroomGiB)
+    # A pre-existing file is either verified and reused or rejected, never overwritten.
+    # It therefore requires no additional download space, including on an offline USB kit.
+    $downloadItems=@($items | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $Destination $_.file)) -and
+        ($Mode -ne 'Install' -or $_.category -ne 'desktop' -or $_.id -in @($pending.id))
+    })
+    $spaceInstallDirectory=if($Mode -eq 'Download'){''}else{Join-Path $env:LOCALAPPDATA 'Programs'}
+    $report.space=@(Get-SuiteSpacePlan $downloadItems $spaceDefinitions $Destination $spaceInstallDirectory $suite.headroomGiB)
     foreach ($item in $items) { Write-Host ($item.name+' '+$item.version) }
     foreach ($space in $report.space) { Write-Host ('Disque '+$space.volume+' : '+[math]::Round($space.freeBytes/1GB,1)+' Gio libres / '+[math]::Ceiling($space.requiredBytes/1GB)+' Gio reserves') }
     if ($Mode -eq 'Plan') { $report.status='planned'; Save-Report; return }
@@ -82,7 +91,7 @@ try {
         if ($installed) { $installed }
     })
     Write-SuiteJson @{schemaVersion=1;applications=$installedApps;modelsDirectory=[IO.Path]::GetFullPath($Destination);catalog=$catalog;reportDirectory=[IO.Path]::GetFullPath($ReportDirectory)} (Join-Path $ReportDirectory 'installed.json')
-    if ($Mode -in @('Install','Verify')) {
+    if ($Mode -in @('Install','Verify') -and -not $SkipVerification) {
         $nodeOwner=$installedApps | Where-Object {$_.id -eq 'openbousic'}
         if (-not $nodeOwner) { throw 'La QA complete requiert OpenBousic et son moteur Node integre. Choisissez Download ou installez OpenBousic.' }
         $node=Join-Path $nodeOwner.directory 'resources/node/node.exe'
@@ -92,7 +101,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw ('QA non validee. Voir '+(Join-Path $ReportDirectory 'qa.json')) }
         $report.interoperability='pass'
     }
-    $report.status='pass'
+    $report.status=if($Mode -eq 'Download'){'downloaded'}elseif($SkipVerification){'installed'}else{'pass'}
 } catch {
     $report.status='fail'; $report.error=$_.Exception.Message
     Write-Error -Message $_.Exception.Message -ErrorAction Continue

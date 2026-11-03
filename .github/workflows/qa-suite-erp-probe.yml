@@ -1,0 +1,41 @@
+name: Actelyo Suite ERP provider diagnostic
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/suite-erp-probe]
+    paths: ['suite/**', '.github/workflows/qa-suite-erp-probe.yml']
+permissions:
+  contents: read
+jobs:
+  erp-probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Locked diagnostic dependencies
+        run: npm ci --prefix suite/qa/runtime --ignore-scripts --no-audit --no-fund
+      - name: Install only LLM Studio and ERP, without claiming full suite compatibility
+        run: |
+          Copy-Item catalog.json suite/catalog.json
+          & ./suite/Installer-ActelyoSuite.ps1 -Mode Install -Apps @('llm','erp') -IncludeTestModels -SkipVerification -Accept -ReportDirectory "$env:GITHUB_WORKSPACE/erp-proof" -Destination "$env:RUNNER_TEMP/actelyo-packages"
+      - name: Exercise the actual ERP embedding and generation contract
+        run: node suite/qa/suite.mjs erp-proof/installed.json --erp-probe
+      - name: Preserve diagnostic facts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: actelyo-suite-erp-probe-${{ github.run_id }}
+          path: |
+            erp-proof/installation.json
+            erp-proof/qa.json
+            erp-proof/rapport.html
+            erp-proof/*.png
+            erp-proof/*-runtime.log
+            erp-proof/*-install.log
+          retention-days: 14

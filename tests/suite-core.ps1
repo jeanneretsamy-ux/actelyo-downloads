@@ -40,8 +40,16 @@ Write-SuiteJson @{schemaVersion=1;revision='fixture';items=@($huge)} (Join-Path 
 $download=Join-Path $cliRoot 'not-created'
 $childArgs=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $cliRoot 'Installer-ActelyoSuite.ps1')+'"'),'-Mode','Install','-Apps','llm','-Accept','-Destination',('"'+$download+'"'),'-ReportDirectory',('"'+(Join-Path $cliRoot 'report')+'"'))
 $child=Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $childArgs -WindowStyle Hidden -RedirectStandardOutput (Join-Path $fixture 'child-out.txt') -RedirectStandardError (Join-Path $fixture 'child-error.txt') -Wait -PassThru
-Assert ($child.ExitCode -ne 0) 'real installer command fails on insufficient space'
+Assert ($child.ExitCode -eq 1) 'real installer command fails with exit 1 on insufficient space'
 Assert (-not(Test-Path $download)) 'preflight creates no download directory and launches no installer'
 $receipt=Read-SuiteJson (Join-Path $cliRoot 'report/installation.json')
 Assert ($receipt.status -eq 'fail' -and $receipt.error -match 'Espace insuffisant') 'failed preflight is recorded truthfully'
+$cache=Join-Path $cliRoot 'cache';New-Item -ItemType Directory -Path $cache | Out-Null
+[IO.File]::WriteAllText((Join-Path $cache $item.file),'test installer bytes, never executed')
+Write-SuiteJson @{schemaVersion=1;revision='fixture';items=@($item)} (Join-Path $cliRoot 'catalog.json')
+$downloadArgs=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+(Join-Path $cliRoot 'Installer-ActelyoSuite.ps1')+'"'),'-Mode','Download','-Apps','llm','-Destination',('"'+$cache+'"'),'-ReportDirectory',('"'+(Join-Path $cliRoot 'offline-report')+'"'))
+$offline=Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $downloadArgs -WindowStyle Hidden -RedirectStandardOutput (Join-Path $fixture 'offline-out.txt') -RedirectStandardError (Join-Path $fixture 'offline-error.txt') -Wait -PassThru
+Assert ($offline.ExitCode -eq 0) 'real offline download command reuses verified cache without fetching or installing'
+$offlineReceipt=Read-SuiteJson (Join-Path $cliRoot 'offline-report/installation.json')
+Assert ($offlineReceipt.status -eq 'downloaded' -and $offlineReceipt.interoperability -eq 'not-tested') 'download completion is never presented as interoperability success'
 Write-Host ("$script:passed meaningful core checks passed. Fixtures: $fixture")

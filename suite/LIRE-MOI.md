@@ -18,12 +18,14 @@ Dans PowerShell, depuis ce dossier :
 # Télécharger seulement les paquets, y compris pour les installer ailleurs
 .\Installer-ActelyoSuite.ps1 -Mode Download -Destination D:\Actelyo
 # Exemple de sélection limitée
-.\Installer-ActelyoSuite.ps1 -Mode Install -Apps llm,erp,rag-anything,openbousic -IncludeTestModels
+.\Installer-ActelyoSuite.ps1 -Mode Install -Apps llm,erp,rag-anything,openbousic -SkipVerification
 # Contrôler les applications déjà installées et retrouver les modèles téléchargés
 .\Installer-ActelyoSuite.ps1 -Mode Verify -Destination D:\Actelyo
 ```
 
 La QA complète attend les six applications et les modèles de test. Une sélection partielle n’est pas déclarée conforme à la suite entière. Le kit garde les versions déjà à jour ou plus récentes ; la preuve de compatibilité ne peut porter que sur les versions effectivement testées, enregistrées dans le rapport. Il ne désinstalle pas d’anciennes applications, ne supprime pas les données, ne redémarre pas l’Explorateur et ne tue pas les applications personnelles. Fermer les applications avant de les mettre à jour.
+
+`-SkipVerification` permet l’installation seule, avec un statut `installed` et une interopérabilité `not-tested`. Le lanceur `Installer.cmd` conserve par défaut toute la QA de la suite complète.
 
 ## Ce qui est réellement testé ensemble
 

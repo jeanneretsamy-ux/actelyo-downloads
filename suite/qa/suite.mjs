@@ -19,17 +19,23 @@ fs.mkdirSync(profiles, { recursive: true });
 const report = { schemaVersion: 1, startedAt: new Date().toISOString(), status: 'running',
   scope: 'Real installed applications, shared LLM Studio server, embeddings, ERP retrieval, secondary RAG, source transfer to Law Harness, RAG Desktop and OpenBousic protocol interoperability. Synthetic data only; not legal accuracy, browser control or exhaustive per-app feature certification.',
   catalogRevision: input.catalog.revision, applications: input.applications, steps: [] };
+const erpProbe=process.argv.includes('--erp-probe');
+const erpChecks=new Set(['llm-launch','llm-models','llm-chat-and-embeddings','erp-launch','erp-shared-model-and-retrieval']);
+if(erpProbe){report.diagnosticOnly=true;report.scope='Focused ERP to real LLM Studio diagnostic; does not certify the complete suite.';}
 const save = () => fs.writeFileSync(path.join(out, 'qa.json'), JSON.stringify(report, null, 2));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const localAppData = process.env.LOCALAPPDATA;
 const clean = { ...process.env };
-for (const key of Object.keys(clean)) if (/TOKEN|SECRET|PASSWORD|API_KEY|^OPENAI_|^ANTHROPIC_|^GROQ_|^GH_|^GITHUB_|^HERMES_|^ELECTRON_RUN_AS_NODE$|^NODE_OPTIONS$|^NODE_PATH$/.test(key)) delete clean[key];
+for (const key of Object.keys(clean)) {
+  if (/TOKEN|SECRET|PASSWORD|API.?KEY|^OPENAI_|^ANTHROPIC_|^GROQ_|^GH_|^GITHUB_|^HERMES_|^ACTELYO_|^LITELLM_|^VITE_DEV_SERVER_URL$|^STORAGE_DIR$|^DATABASE_URL$|^LLM_PROVIDER$|^EMBEDDING_|^GENERIC_OPEN_AI_|^VECTOR_DB$|^SERVER_PORT$|^COLLECTOR_PORT$|^ELECTRON_RUN_AS_NODE$|^NODE_OPTIONS$|^NODE_PATH$|^SSLKEYLOGFILE$/i.test(key)) delete clean[key];
+}
 let studio, chatId, embeddingId, document, retrieved;
 const marker = 'ACTELYO-SUITE-' + randomUUID();
 const fixture = path.join(out, 'piece-qa.txt');
 fs.writeFileSync(fixture, `Pièce synthétique ${marker}. Le 03/11/2026, le dossier ${marker} indique un montant de 7429 euros.\n`);
 
 async function step(id, dependencies, fn) {
+  if(erpProbe && !erpChecks.has(id))return;
   const item = { id, status: 'running', startedAt: new Date().toISOString() };
   report.steps.push(item); save();
   if (dependencies.some(d => completed.get(d) !== 'pass')) {
@@ -127,7 +133,9 @@ try {
     const selected = await chooseFiles('erp', [fixture], () => page.evaluate(() => window.electronAPI.local.select('corpus')));
     assert.equal(selected.files.length, 1);
     document = await page.evaluate(token => window.electronAPI.local.ingest(token), selected.files[0].token);
-    assert(document.embedded, 'ERP silently fell back without shared embeddings');
+    report.erpIngest=document;
+    report.erpStatus=await page.evaluate(()=>window.electronAPI.local.status());save();
+    assert(document.embedded, 'ERP did not confirm shared embeddings: '+JSON.stringify(document));
     retrieved = await page.evaluate(({marker,id}) => window.electronAPI.local.search(marker,[id]), {marker,id:document.id});
     assert(retrieved.sources.some(s => s.id === document.id && s.text.includes(marker)), 'ERP did not retrieve its actual imported source');
     const answer = await page.evaluate(id => window.electronAPI.local.query({question:'Quel est le montant du dossier ? /no_think',mode:'question',skillIds:[],documentIds:[id]}), document.id);
@@ -145,7 +153,22 @@ try {
       return {probe,retrieval:result.retrieval,sources:result.sources.map(s=>s.id)};
     } finally { await page.evaluate(() => window.electronAPI.local.setRagProvider('native')); }
   });
-  await step('law-launch', [], () => launch('law-harness', {HERMES_HOME:path.join(profiles,'law-harness','hermes'),HERMES_DESKTOP_USER_DATA_DIR:path.join(profiles,'law-harness','desktop'),HERMES_DESKTOP_DISABLE_GPU:'1'}));
+  await step('law-launch', [], async () => {
+    const identity = await launch('law-harness', {HERMES_HOME:path.join(profiles,'law-harness','hermes'),HERMES_DESKTOP_USER_DATA_DIR:path.join(profiles,'law-harness','desktop'),HERMES_DESKTOP_DISABLE_GPU:'1'});
+    const {page}=active.get('law-harness');
+    const deadline=Date.now()+300000;let interactive=false;
+    while(Date.now()<deadline){
+      const defer=page.getByRole('button',{name:/^(I'll choose a provider later|Je choisirai un fournisseur plus tard)$/i});
+      if(await defer.isVisible().catch(()=>false))await defer.click();
+      try{await page.getByRole('button',{name:'Atelier Actelyo',exact:true}).click({trial:true,timeout:1000});interactive=true;break;}catch{}
+      await sleep(500);
+    }
+    assert(interactive,'Installed Law Harness did not finish startup');
+    await page.getByRole('button',{name:'Atelier Actelyo',exact:true}).click();
+    await page.getByRole('heading',{name:'Atelier Actelyo',exact:true}).waitFor();
+    await page.screenshot({path:path.join(out,'law-atelier.png')});await page.keyboard.press('Escape');
+    return {...identity,atelierOpened:true};
+  });
   await step('erp-law-source-binding', ['erp-shared-model-and-retrieval','law-launch'], async () => {
     const root = path.join(applications.get('law-harness').directory,'resources','agent-payload');
     const source = path.join(root,'hermes-agent');
@@ -182,7 +205,8 @@ try {
     const headers={Authorization:'Bearer '+key};
     const form=new FormData();form.set('file',new Blob([fs.readFileSync(fixture)],{type:'text/plain'}),'piece-qa.txt');
     const upload=await fetch(origin+'/api/v1/document/upload',{method:'POST',headers,body:form,signal:AbortSignal.timeout(120000)});
-    assert(upload.ok,'RAG real upload failed: '+upload.status);const data=await upload.json();
+    const uploadText=await upload.text();
+    assert(upload.ok,'RAG real upload failed: '+upload.status+' '+uploadText.slice(0,1200));const data=JSON.parse(uploadText);
     const locations=data.documents?.map(d=>d.location);assert(locations?.length,'RAG document collector returned no document');
     await json(origin+'/api/v1/workspace/'+slug+'/update-embeddings',{adds:locations,deletes:[]},headers);
     const result=await json(origin+'/api/v1/workspace/'+slug+'/vector-search',{query:marker,topN:5},headers);
@@ -194,7 +218,11 @@ try {
   });
   let openPort;
   await step('openbousic-launch', ['llm-chat-and-embeddings'], async () => {
-    openPort=await freePort();return launch('openbousic',{ACTELYO_OPENBOUSIC_PORT:String(openPort),ACTELYO_OPENBOUSIC_LLM_URL:studio,ACTELYO_OPENBOUSIC_MODEL_NAME:chatId,ACTELYO_OPENBOUSIC_BACKEND:'llamacpp'});
+    openPort=await freePort();
+    const identity=await launch('openbousic',{ACTELYO_OPENBOUSIC_PORT:String(openPort),ACTELYO_OPENBOUSIC_LLM_URL:studio,ACTELYO_OPENBOUSIC_MODEL_NAME:chatId,ACTELYO_OPENBOUSIC_BACKEND:'llamacpp'});
+    await active.get('openbousic').page.waitForURL(u=>u.hostname==='127.0.0.1' && u.port===String(openPort),{timeout:120000});
+    await json('http://127.0.0.1:'+openPort+'/api/health');
+    return {...identity,serverReady:true};
   });
   await step('openbousic-shared-model-generation', ['openbousic-launch'], async () => {
     const origin='http://127.0.0.1:'+openPort;
@@ -213,12 +241,19 @@ try {
   });
 } finally {
   for(const [id,instance] of [...active].reverse()){
-    try { await instance.app.close(); } catch(e){report.cleanupErrors??=[];report.cleanupErrors.push({id,error:String(e)});}
+    try { await instance.app.close(); } catch(e){
+      report.cleanupErrors??=[];report.cleanupErrors.push({id,error:String(e)});
+      const owned=instance.app.process();
+      if(process.platform==='win32' && owned.pid && owned.exitCode===null){
+        await command('taskkill',['/PID',String(owned.pid),'/T','/F'],process.cwd(),clean).catch(()=>{});
+      }
+    }
     instance.log?.end();
   }
-  report.status=report.steps.length>0 && report.steps.every(s=>s.status==='pass') && !report.cleanupErrors?.length ? 'pass':'fail';
+  const passed=report.steps.length>0 && report.steps.every(s=>s.status==='pass') && !report.cleanupErrors?.length;
+  report.status=passed?(erpProbe?'diagnostic-pass':'pass'):'fail';
   report.finishedAt=new Date().toISOString();save();
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   fs.writeFileSync(path.join(out,'rapport.html'),`<!doctype html><meta charset="utf-8"><title>QA Suite Actelyo</title><style>body{font:16px Segoe UI;max-width:1000px;margin:40px auto;padding:20px}td,th{padding:12px;text-align:left;border-bottom:1px solid #ddd}pre{white-space:pre-wrap}</style><h1>Suite Actelyo — ${escape(report.status)}</h1><p>${escape(report.scope)}</p><table><tr><th>Contrôle</th><th>Résultat</th><th>Détail</th></tr>${report.steps.map(s=>`<tr><td>${escape(s.id)}</td><td>${escape(s.status)}</td><td><pre>${escape(s.error||JSON.stringify(s.detail,null,2))}</pre></td></tr>`).join('')}</table>`);
-  process.exitCode=report.status==='pass'?0:1;
+  process.exitCode=passed?0:1;
 }

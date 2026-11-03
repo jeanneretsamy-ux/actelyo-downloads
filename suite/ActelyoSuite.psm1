@@ -58,7 +58,9 @@ function Get-SuiteSpacePlan($Items, $Definitions, [string]$DownloadDirectory, [s
     [double]$installBytes = 0
     foreach ($item in $Items) { $downloadBytes += [double]$item.bytes }
     foreach ($definition in $Definitions) { $installBytes += [double]$definition.reserveGiB * 1GB }
-    $pairs = @(@{Path=$DownloadDirectory;Bytes=$downloadBytes}, @{Path=$InstallDirectory;Bytes=$installBytes})
+    $pairs = @()
+    if ($downloadBytes -gt 0) { $pairs += @{Path=$DownloadDirectory;Bytes=$downloadBytes} }
+    if ($InstallDirectory) { $pairs += @{Path=$InstallDirectory;Bytes=$installBytes} }
     foreach ($pair in $pairs) {
         $root = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath([string]$pair.Path))
         if (-not $root -or $root.StartsWith('\\')) { throw 'Choisissez un disque local pour ce kit.' }
