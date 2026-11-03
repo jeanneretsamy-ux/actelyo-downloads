@@ -113,10 +113,14 @@ try {
     chatId = status.models.find(m => m.kind === 'llm')?.id;
     embeddingId = status.models.find(m => m.kind === 'embedding')?.id;
     assert(chatId && embeddingId, 'Both model types must be imported');
-    for (const id of [chatId, embeddingId]) await page.evaluate(id => window.actelyoLLM.load(id, { context: 8192, threads: 2 }), id);
+    const loads=[{id:chatId,options:{context:8192,threads:2,backend:'cpu'}},
+      {id:embeddingId,options:{context:2048,threads:2,backend:'cpu',batch:2048,microBatch:2048}}];
+    // Non-causal document embeddings require each input to fit in the physical batch.
+    // The default microBatch=64 can answer tiny probes but fails on real document chunks.
+    for (const load of loads) await page.evaluate(({id,options}) => window.actelyoLLM.load(id, options), load);
     status = await page.evaluate(() => window.actelyoLLM.status()); studio = status.baseUrl;
     assert(status.models.filter(m => m.loaded).length >= 2, 'Both actual model processes must be ready');
-    return { baseUrl: studio, chatModel: chatId, embeddingModel: embeddingId, modelHashes: modelItems.map(m => ({ id:m.id, sha256:m.sha256 })) };
+    return { baseUrl: studio, chatModel: chatId, embeddingModel: embeddingId,loadSettings:loads, modelHashes: modelItems.map(m => ({ id:m.id, sha256:m.sha256 })) };
   });
   await step('llm-chat-and-embeddings', ['llm-models'], async () => {
     const response = await json(studio + '/chat/completions', { model: chatId, messages: [{role:'user',content:'Say hello in one word. /no_think'}], max_tokens:128, stream:false, chat_template_kwargs:{enable_thinking:false} });

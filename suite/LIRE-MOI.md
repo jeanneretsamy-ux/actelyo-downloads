@@ -30,7 +30,7 @@ La QA complète attend les six applications et les modèles de test. Une sélect
 ## Ce qui est réellement testé ensemble
 
 - Démarrage des cinq interfaces ; RAG-Anything est un moteur secondaire sans interface séparée.
-- Vrai serveur de LLM Studio, vrais modèles Qwen et Nomic, génération et embeddings locaux, sans serveur simulé ni modèle renommé LegalYA.
+- Vrai serveur de LLM Studio, vrais modèles Qwen et Nomic, génération et embeddings locaux, sans serveur simulé ni modèle renommé LegalYA. Le profil documentaire Nomic utilise un contexte, un lot et un lot physique de 2 048 tokens : le lot physique par défaut de 64 tokens est insuffisant pour les pièces. Ces réglages sont enregistrés dans le rapport pour pouvoir les reproduire dans le profil personnel.
 - ERP connecté à ce serveur : import d’une pièce synthétique, indexation, recherche et réponse avec sources ; un éventuel repli extractif est identifié dans le rapport.
 - ERP → RAG-Anything : recherche secondaire réelle sur la même pièce, avec conservation de son identifiant.
 - ERP → vérificateur installé de Law Harness : transfert de passages, assemblage automatique des citations et chronologie avec références contrôlées. Ce test ne prouve pas l’inférence du chat de Law Harness ni la pertinence juridique des affirmations.
