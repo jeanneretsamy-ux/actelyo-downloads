@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-03T15:04:06.061Z",
+  "revision": "2026-11-03T20:02:00.317Z",
   "items": [
     {
       "id": "erp",
@@ -52,16 +52,16 @@
       "id": "rag",
       "name": "Actelyo RAG Desktop",
       "category": "desktop",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Bibliothèque documentaire locale, recherche assistée et préparation de corpus juridiques structurés.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.4/Actelyo-RAG-Desktop-Setup-1.0.4-x64.exe",
-      "file": "Actelyo-RAG-Desktop-Setup-1.0.4-x64.exe",
-      "bytes": 490523134,
-      "sha256": "83ea7d61e9ee6b52bca7c7e913007d515d220ff0fbf2620124e20d1dd1121094",
-      "note": "Logo Actelyo RAG (cyan) intégré. Corrige le chemin API de l’évaluation Recall@k/MRR sur Desktop. Aucun corpus ni modèle fourni."
+      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.5/Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
+      "bytes": 490522313,
+      "sha256": "10e15996a12ede0207f5b99ce6e8a75e8d295d35cff81b939f5d5d504b97bfb7",
+      "note": "Logo Actelyo RAG (cyan) intégré. Corrige la collecte de documents via API Desktop : dossier identique au collecteur de l’interface. Installation et upload API réel vérifiés. Aucun corpus ni modèle fourni."
     },
     {
       "id": "llm",
@@ -139,5 +139,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-Download-Kit-LLM-3.0.1.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.0/Actelyo-Suite-1.0.0-Kit.zip"
 }

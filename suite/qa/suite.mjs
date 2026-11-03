@@ -194,7 +194,9 @@ try {
   });
   await step('rag-launch', ['llm-chat-and-embeddings'], async () => {
     const data=path.join(profiles,'rag','desktop');fs.mkdirSync(path.join(data,'server'),{recursive:true});
-    const settings={LLM_PROVIDER:'generic-openai',GENERIC_OPEN_AI_BASE_PATH:studio,GENERIC_OPEN_AI_MODEL_PREF:chatId,GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:'8192',EMBEDDING_ENGINE:'generic-openai',EMBEDDING_BASE_PATH:studio,EMBEDDING_MODEL_PREF:embeddingId,EMBEDDING_MODEL_MAX_CHUNK_LENGTH:'512',VECTOR_DB:'lancedb',DISABLE_TELEMETRY:'true'};
+    // The SDK requires a key field even for the actual anonymous loopback server.
+    // This public placeholder is not a user credential and is never sent off-machine.
+    const settings={LLM_PROVIDER:'generic-openai',GENERIC_OPEN_AI_BASE_PATH:studio,GENERIC_OPEN_AI_API_KEY:'actelyo-local',GENERIC_OPEN_AI_MODEL_PREF:chatId,GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:'8192',GENERIC_OPEN_AI_MAX_TOKENS:'256',EMBEDDING_ENGINE:'generic-openai',EMBEDDING_BASE_PATH:studio,GENERIC_OPEN_AI_EMBEDDING_API_KEY:'actelyo-local',GENERIC_OPEN_AI_EMBEDDING_MAX_CONCURRENT_CHUNKS:'4',GENERIC_OPEN_AI_EMBEDDING_PASSAGE_PREFIX:'search_document: ',GENERIC_OPEN_AI_EMBEDDING_QUERY_PREFIX:'search_query: ',EMBEDDING_MODEL_PREF:embeddingId,EMBEDDING_MODEL_MAX_CHUNK_LENGTH:'512',VECTOR_DB:'lancedb',DISABLE_TELEMETRY:'true'};
     fs.writeFileSync(path.join(data,'server','.env'),Object.entries(settings).map(([k,v])=>k+'='+v).join('\n'));
     await launch('rag',{},['--data-dir='+data]);
     const {page}=active.get('rag');await page.waitForURL(u=>u.hostname==='127.0.0.1',{timeout:240000});

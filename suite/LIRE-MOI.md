@@ -6,7 +6,7 @@ Ce kit utilise les installateurs publics référencés dans le `catalog.json` jo
 2. Ouvrir `Installer.cmd`. Vérifier les versions et l’espace annoncé, puis confirmer la sélection. Les six applications et deux modèles publics de test sont téléchargés et contrôlés.
 3. Consulter `Rapports/<date>/installation.json`, puis `rapport.html` et `qa.json` pour la QA. Un échec ou un prérequis manquant produit un code de sortie non nul ; « installé » ne signifie jamais automatiquement « compatible ».
 
-Le kit réserve séparément les téléchargements et l’installation. Prévoir environ 30 Gio libres pour une installation complète neuve, davantage si d’autres programmes écrivent sur le disque. Déplacer les téléchargements ne déplace pas les applications : les installateurs conservent leurs dossiers Windows habituels. Le moteur RAG-Anything est notamment recherché par l’ERP à son emplacement standard.
+Le kit réserve séparément les téléchargements et l’installation. Prévoir environ 32 Gio (35 Go) libres pour une installation complète neuve, davantage si d’autres programmes écrivent sur le disque. Déplacer les téléchargements ne déplace pas les applications : les installateurs conservent leurs dossiers Windows habituels. Le moteur RAG-Anything est notamment recherché par l’ERP à son emplacement standard.
 
 ## Choisir les applications ou un autre dossier de téléchargement
 
