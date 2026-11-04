@@ -1,0 +1,47 @@
+name: Repackage approved public ERP with legacy upgrade compatibility
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/verified-desktop-catalog]
+    paths: [.github/workflows/repackage-erp-public.yml, .github/rebrand/erp-public.ps1, .github/rebrand/erp-public.iss, tests/erp-repack-startup.mjs]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Repackage only public approved bytes and verify an actual legacy upgrade
+        shell: pwsh
+        run: .github/rebrand/erp-public.ps1
+      - name: Prepare locked UI driver
+        run: npm ci --prefix suite/qa/runtime --ignore-scripts --no-audit --no-fund
+      - name: Verify upgraded conversation interface
+        run: node tests/erp-repack-startup.mjs
+      - name: Verify the actual native window icon
+        shell: powershell
+        run: |
+          $helper=Join-Path $env:RUNNER_TEMP 'verify-native-window.ps1'
+          Invoke-WebRequest 'https://raw.githubusercontent.com/jeanneretsamy-ux/hermes-agentactelyo/64f6e638c5d06dc88d520860acae24c1adc9df31/scripts/actelyo-download/window-branding.ps1' -UseBasicParsing -OutFile $helper
+          if((Get-FileHash $helper -Algorithm SHA256).Hash -ne 'F228E8F228E47FEB4005EC956DEBE06F93D148E018C8BBB8A1177BC49BECB598'){throw 'Native proof helper changed'}
+          & $helper -Executable $env:ERP_REPACK_EXE -ExpectedIcon .github/branding/actelyo-erp.ico -ProofDirectory "$env:RUNNER_TEMP/erp-window-proof" -Product 'Actelyo ERP'
+          if(-not $?){throw 'Native icon verification failed'}
+          Copy-Item "$env:RUNNER_TEMP/erp-window-proof/window-branding.json" erp-repack/native-window-branding.json
+          Copy-Item "$env:RUNNER_TEMP/erp-window-proof/window-icon.png" erp-repack/native-window-icon.png
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: erp-public-1.8.4-r2-review
+          path: |
+            erp-repack/*.exe
+            erp-repack/*.json
+            erp-repack/*.log
+            erp-repack/*.png
+            erp-repack/*.txt
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
