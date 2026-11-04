@@ -32,8 +32,18 @@ function Find-SuiteInstallation($Definition, $Registrations) {
     if ($matches.Count -gt 1) { throw ('Plusieurs installations correspondent a '+$Definition.id+'. Aucun choix automatique.') }
     if ($matches.Count -eq 0) { return $null }
     $entry = $matches[0]
-    if (-not $entry.PSObject.Properties['InstallLocation'] -or -not $entry.InstallLocation) { throw ('Dossier inconnu pour '+$Definition.id) }
-    $directory = [IO.Path]::GetFullPath($entry.InstallLocation)
+    $location = if ($entry.PSObject.Properties['InstallLocation']) { $entry.InstallLocation } else { $null }
+    if (-not $location -and $Definition.PSObject.Properties['registryIconFallback'] -and $Definition.registryIconFallback -and $entry.PSObject.Properties['DisplayIcon']) {
+        # electron-builder records the install folder outside the Uninstall key.
+        # Its registered executable icon provides an exact, verifiable path.
+        $icon = [string]$entry.DisplayIcon
+        $candidate = $null
+        if ($icon -match '^"([^\"]+)"(?:,\s*-?\d+)?$') { $candidate=$Matches[1] }
+        elseif ($icon -match '^([^\"]+?)(?:,\s*-?\d+)?$') { $candidate=$Matches[1] }
+        if ($candidate -and [IO.Path]::IsPathRooted($candidate) -and [IO.Path]::GetFileName($candidate) -in $Definition.executables -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { $location=[IO.Path]::GetDirectoryName($candidate) }
+    }
+    if (-not $location) { throw ('Dossier inconnu pour '+$Definition.id) }
+    $directory = [IO.Path]::GetFullPath($location)
     $exe = $null
     foreach ($name in $Definition.executables) {
         $candidate = Join-Path $directory $name
@@ -71,6 +81,14 @@ function Get-SuiteSpacePlan($Items, $Definitions, [string]$DownloadDirectory, [s
         $drive = New-Object IO.DriveInfo($root)
         $required = [long]($volumes[$root]+$HeadroomGiB*1GB)
         [pscustomobject]@{ volume=$root; requiredBytes=$required; freeBytes=$drive.AvailableFreeSpace; ok=($drive.AvailableFreeSpace -ge $required) }
+    }
+}
+function Get-SuiteInstallerArguments($Item, [string]$LogPath) {
+    $kind = if ($Item.PSObject.Properties['installer']) { $Item.installer } else { 'inno' }
+    switch ($kind) {
+        'nsis' { return @('/S') }
+        'inno' { return @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/LOG="'+$LogPath+'"')) }
+        default { throw ('Type d''installateur non pris en charge : '+$kind) }
     }
 }
 function Receive-SuiteItem($Item, [string]$Directory, [Security.SecureString]$HuggingFaceToken=$null) {

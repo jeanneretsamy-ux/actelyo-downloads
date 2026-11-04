@@ -52,7 +52,7 @@ public static class ActelyoIconProof {
 }
 '@ -ReferencedAssemblies System.Drawing
 $references=@{erp='actelyo-erp.ico';llm='actelyo-llm.ico';rag='actelyo-rag.ico';'law-harness'='actelyo-law.ico';openbousic='actelyo-imperium.ico'}
-$names=@{erp='Actelyo ERP Desktop.lnk';llm='Actelyo LLM Desktop.lnk';rag='Actelyo RAG Desktop.lnk';'law-harness'='Actelyo Law Harness.lnk';openbousic='Actelyo OpenBousic.lnk'}
+$names=@{erp=@('Actelyo ERP Desktop.lnk','Actelyo ERP.lnk');llm='Actelyo LLM Desktop.lnk';rag='Actelyo RAG Desktop.lnk';'law-harness'='Actelyo Law Harness.lnk';openbousic='Actelyo OpenBousic.lnk'}
 $limit=0.12
 $hueLimit=18
 if($SelfTest){
@@ -91,7 +91,7 @@ foreach($app in $inputData.applications){
   $row.installerSha256=$item.sha256
   $paths=@(@{kind='installer';file=$setup;shell=$false},@{kind='executable';file=$app.executable;shell=$false})
   foreach($place in @(@{kind='desktop';roots=@([Environment]::GetFolderPath('Desktop'),[Environment]::GetFolderPath('CommonDesktopDirectory'))},@{kind='start-menu';roots=@([Environment]::GetFolderPath('Programs'),[Environment]::GetFolderPath('CommonPrograms'))})){
-   $found=@(foreach($root in $place.roots){if($root -and (Test-Path -LiteralPath $root)){Get-ChildItem -LiteralPath $root -Filter $names[$app.id] -File -Recurse}})
+   $found=@(foreach($root in $place.roots){if($root -and (Test-Path -LiteralPath $root)){foreach($name in $names[$app.id]){Get-ChildItem -LiteralPath $root -Filter $name -File -Recurse}}})
    if($found.Count -ne 1){throw ('Expected one '+$place.kind+' shortcut; got '+$found.Count)}
    $link=$shell.CreateShortcut($found[0].FullName)
    if([IO.Path]::GetFullPath($link.TargetPath) -ne [IO.Path]::GetFullPath($app.executable)){throw ('Wrong '+$place.kind+' shortcut target')}

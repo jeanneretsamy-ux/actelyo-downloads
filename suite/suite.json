@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "headroomGiB": 3,
   "models": [
     "legalya-v36-r2",
@@ -36,6 +36,7 @@
     },
     {
       "id": "erp",
+      "registryIconFallback": true,
       "registryPattern": "^Actelyo ERP",
       "reserveGiB": 2,
       "executables": [

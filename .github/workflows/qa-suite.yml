@@ -84,6 +84,7 @@ jobs:
             suite-proof/portal-fallback.json
             suite-proof/*.png
             suite-proof/*-install.log
+            suite-proof/*-installer-diagnostic.json
             suite-proof/*-runtime.log
             suite-proof/branding/*.png
             suite-proof/branding/*.json

@@ -13,6 +13,11 @@ Assert ((Compare-SuiteVersion '3.0.3' '3.0.3') -eq 0) 'current version is preser
 Assert ((Compare-SuiteVersion '3.0.4' '3.0.3') -gt 0) 'newer version is never downgraded'
 Reject {Compare-SuiteVersion 'development' '3.0.3'} 'unknown version cannot be silently replaced'
 Assert-SuiteItem $item
+Assert ((@(Get-SuiteInstallerArguments $item 'C:\QA logs\install.log') -join ' ') -match '/VERYSILENT.* /LOG="C:\\QA logs\\install.log"') 'legacy Inno installers retain their silent mode and quoted log path'
+$nsis=$item.PSObject.Copy();$nsis|Add-Member NoteProperty installer 'nsis'
+Assert ((@(Get-SuiteInstallerArguments $nsis 'unused') -join ' ') -ceq '/S') 'NSIS receives its case-sensitive silent switch without Inno options'
+$unknown=$item.PSObject.Copy();$unknown|Add-Member NoteProperty installer 'unknown'
+Reject {Get-SuiteInstallerArguments $unknown 'unused'} 'unknown installer formats are rejected before execution'
 Assert ((Receive-SuiteItem $item $fixture) -eq $file) 'verified installer cache is reused without network'
 [IO.File]::WriteAllText($file,'corrupt existing user file')
 Reject {Receive-SuiteItem $item $fixture} 'corrupt cache is rejected before execution'
@@ -26,6 +31,12 @@ Reject {Assert-SuiteItem $bad} 'multipart total size must match installer'
 $definition=[pscustomobject]@{id='fixture';registryPattern='^Fixture App';executables=@('fixture.exe')}
 $registration=[pscustomobject]@{DisplayName='Fixture App';DisplayVersion='1.0.0';InstallLocation=$fixture}
 Assert ((Find-SuiteInstallation $definition @($registration)).executable -eq $file) 'installed executable is found only in its own registry directory'
+$nsisDefinition=$definition.PSObject.Copy();$nsisDefinition|Add-Member NoteProperty registryIconFallback $true
+$nsisRegistration=[pscustomobject]@{DisplayName='Fixture App';DisplayVersion='1.0.0';DisplayIcon=('"'+$file+'",0')}
+Assert ((Find-SuiteInstallation $nsisDefinition @($nsisRegistration)).executable -eq $file) 'NSIS registration without InstallLocation resolves its exact existing executable icon'
+$badRegistration=$nsisRegistration.PSObject.Copy();$badRegistration.DisplayIcon=Join-Path $fixture 'another.exe'
+Reject {Find-SuiteInstallation $nsisDefinition @($badRegistration)} 'NSIS cannot resolve an unrelated or missing executable'
+Reject {Find-SuiteInstallation $definition @($nsisRegistration)} 'registry icon fallback must be explicitly enabled for the product'
 Reject {Find-SuiteInstallation $definition @($registration,$registration)} 'ambiguous installed application is rejected'
 $space=@(Get-SuiteSpacePlan @($item) @([pscustomobject]@{reserveGiB=1}) $fixture $fixture 3)
 Assert ($space.Count -eq 1 -and $space[0].requiredBytes -eq ($item.bytes+4GB)) 'download and installation reserves accumulate on the same volume'
