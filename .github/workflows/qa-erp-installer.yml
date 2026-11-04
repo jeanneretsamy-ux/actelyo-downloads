@@ -16,9 +16,10 @@ jobs:
         shell: [pwsh, powershell]
         launcher: [start-process, dotnet]
     steps:
-      - name: Install the unchanged public ERP binary
-        shell: ${{ matrix.shell }}
+      - name: Prepare the unchanged public ERP installer diagnostic
+        shell: pwsh
         run: |
+          $content = @'
           $ErrorActionPreference = 'Stop'
           $out = Join-Path $env:RUNNER_TEMP 'erp-diagnostic'
           New-Item -ItemType Directory -Path $out | Out-Null
@@ -43,6 +44,13 @@ jobs:
           Get-Content (Join-Path $out 'result.json')
           if (-not $finished) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue; throw 'Synthetic CI installer timed out' }
           if ($process.ExitCode -ne 0 -or $records.Count -ne 1 -or $executables.Count -ne 1 -or $executables[0].version -notmatch '^1\.8\.4(?:\.0)?$') { throw 'Published installer diagnostic failed' }
+          '@
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'erp-diagnostic.ps1'), $content)
+      - name: Install using the selected PowerShell and launcher
+        shell: pwsh
+        run: |
+          & '${{ matrix.shell }}' -NoProfile -ExecutionPolicy Bypass -File (Join-Path $env:RUNNER_TEMP 'erp-diagnostic.ps1')
+          exit $LASTEXITCODE
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
