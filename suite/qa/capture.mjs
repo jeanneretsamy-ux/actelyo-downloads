@@ -1,6 +1,19 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
+export async function activateWindow(instance) {
+  const window = await instance.app.browserWindow(instance.page);
+  try {
+    await window.evaluate(win => {
+      if (win.isDestroyed()) throw Error('Window closed before activation');
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    });
+  } finally { await window.dispose(); }
+  await instance.page.bringToFront();
+}
+
 // Capture the actual Electron window rather than CDP Page.captureScreenshot,
 // which can stall on a live OpenBousic renderer in a multi-app Windows session.
 export async function captureWindow(instance, file) {

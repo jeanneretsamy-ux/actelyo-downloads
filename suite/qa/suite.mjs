@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
-import { captureWindow } from './capture.mjs';
+import { activateWindow, captureWindow } from './capture.mjs';
 
 const require = createRequire(new URL('./runtime/package.json', import.meta.url));
 const { _electron } = require('playwright-core');
@@ -246,7 +246,15 @@ try {
     const identity=await launch('openbousic',{ACTELYO_OPENBOUSIC_PORT:String(openPort),...(!startupOnly?{ACTELYO_OPENBOUSIC_LLM_URL:studio,ACTELYO_OPENBOUSIC_MODEL_NAME:chatId,ACTELYO_OPENBOUSIC_BACKEND:'llamacpp'}:{})});
     await active.get('openbousic').page.waitForURL(u=>u.hostname==='127.0.0.1' && u.port===String(openPort),{timeout:120000});
     await json('http://127.0.0.1:'+openPort+'/api/health');
-    return {...identity,serverReady:true};
+    const instance=active.get('openbousic');await activateWindow(instance);
+    if(new URL(instance.page.url()).pathname==='/onboarding'){
+      await instance.page.getByTestId('onboarding-add-provider-button').click({timeout:60000});
+      await instance.page.getByTestId('provider-modal-next').waitFor({state:'visible',timeout:20000});
+      await instance.page.getByRole('button',{name:/^(Cancel|Annuler)$/}).click();
+      await instance.page.getByTestId('onboarding-add-provider-button').waitFor({state:'visible'});
+      instance.onboardingAction=true;
+    }
+    return {...identity,serverReady:true,providerDialogOpened:instance.onboardingAction===true};
   });
   await step('openbousic-shared-model-generation', ['openbousic-launch'], async () => {
     const origin='http://127.0.0.1:'+openPort;
@@ -261,8 +269,9 @@ try {
     report.uiChecks=identities;
     for(const [id,instance] of active){
       assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
-      let uiError, capture;
+      let uiError, capture, diagnostics;
       try{
+        await activateWindow(instance);
         if(startupOnly&&id==='rag'){
           assert(instance.onboardingStarted,'RAG welcome action did not advance');
           await instance.page.locator('body').filter({hasText:/\S/}).waitFor({timeout:60000});
@@ -270,10 +279,10 @@ try {
           await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
         }
         await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
-      }catch(e){uiError=String(e);}
+      }catch(e){uiError=String(e);diagnostics=await instance.page.evaluate(()=>({visibility:document.visibilityState,title:document.title,buttons:[...document.querySelectorAll('button')].slice(0,25).map(b=>({text:b.innerText,disabled:b.disabled,width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height,visibility:getComputedStyle(b).visibility}))})).catch(()=>undefined);}
       try { capture=await captureWindow(instance,path.join(out,id+'-ready.png')); }
       catch(e){uiError=[uiError,String(e)].filter(Boolean).join('\n');}
-      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,onboardingStarted:instance.onboardingStarted,url:instance.page.url()});
+      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,diagnostics,onboardingStarted:instance.onboardingStarted,providerDialogOpened:instance.onboardingAction,url:instance.page.url()});
       save();
     }
     report.uiChecks=identities;save();
