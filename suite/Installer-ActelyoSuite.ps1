@@ -88,7 +88,15 @@ try {
             if (@($spaceNow | Where-Object {-not $_.ok}).Count) { throw 'Espace devenu insuffisant avant installation. Installation suspendue.' }
             $log=Join-Path ([IO.Path]::GetFullPath($ReportDirectory)) ($item.id+'-install.log')
             $installerArguments=@(Get-SuiteInstallerArguments $item $log)
-            $process=Start-Process -FilePath $download -ArgumentList $installerArguments -WindowStyle Hidden -Wait -PassThru
+            if ($item.PSObject.Properties['installer'] -and $item.installer -eq 'nsis') {
+                $start=New-Object Diagnostics.ProcessStartInfo
+                $start.FileName=$download; $start.Arguments=($installerArguments -join ' ')
+                $start.UseShellExecute=$false; $start.CreateNoWindow=$true
+                $process=[Diagnostics.Process]::Start($start)
+                $process.WaitForExit()
+            } else {
+                $process=Start-Process -FilePath $download -ArgumentList $installerArguments -WindowStyle Hidden -Wait -PassThru
+            }
             if ($process.ExitCode -ne 0) { throw ('Echec de '+$item.id+' : code '+$process.ExitCode+'. Voir '+$log) }
             $installed=Find-SuiteInstallation $definition (Get-SuiteRegistrations)
             if (-not $installed -or (Compare-SuiteVersion $installed.version $item.version) -lt 0) { throw ('Version installee non confirmee : '+$item.id) }
