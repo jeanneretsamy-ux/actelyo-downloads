@@ -1,82 +1,97 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-10-25T15:59:23.397Z",
+  "revision": "2026-11-03T23:19:15.582Z",
   "items": [
     {
       "id": "erp",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.1/Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.8.1-x64.exe",
-      "bytes": 153539764,
-      "sha256": "b329893a6f24587a48ed2057b243fd9d0fe48540de4cc33044317ea50b8fd15d",
-      "note": "Version corrective 1.8.1 : application, executable Windows et installateur alignes ; remplacement des fichiers applicatifs lors des mises a jour. Installation neuve et mise a jour depuis 1.8.0 verifiees."
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.2/Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe",
+      "bytes": 153968293,
+      "sha256": "dad4952a22729e3943efe86357b8e500b6764f51ae459f2862c8e9d1711fd97a",
+      "note": "Logo Actelyo ERP (vert) sur l’exécutable, l’installateur et les raccourcis. Application 1.8.1 vérifiée, met à jour la 1.8.1 sur place sans toucher aux données."
     },
     {
       "id": "law-harness",
       "name": "Actelyo Law Harness Desktop",
       "category": "desktop",
-      "version": "e86e627",
-      "description": "Cabinet juridique, Studio, REA et apprentissage des procédures.",
+      "version": "2026.11.4.1",
+      "description": "Atelier de création de plugins, cabinet juridique et recherche sourcée.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo",
-      "buildUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/actions/runs/39084466101",
-      "note": "Build Windows vérifié e86e627. Le kit réunit automatiquement les trois parties de l’installateur. Aucun corpus privé inclus.",
-      "file": "Actelyo-Law-Harness-Setup-x64.exe",
-      "bytes": 2191623141,
-      "sha256": "8c7af9f802ad2929391e77609bb625d4f0ff9e48ec24d93dbecea3847adcd0ff",
+      "note": "Logo violet de référence sur l’installateur, l’exécutable, la fenêtre et les raccourcis Windows. Révision de présentation de la version 2026.11.4, sans changement du code applicatif public. Modèle à configurer séparément.",
+      "file": "Actelyo-Law-Harness-Setup-2026.11.4.1-x64.exe",
+      "bytes": 2194215635,
+      "sha256": "52fb9a3c69a8105898bb4819904417ab145349c1bfe470f54d949de6661130a5",
       "parts": [
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part01",
+          "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-law-v2026.11.4.1/Actelyo-Law-Harness-Setup-2026.11.4.1-x64.exe.part01",
           "bytes": 1000000000,
-          "sha256": "d3840266d12cd1947dd02c95f0ad5b1194b02dc88c42eec89a5ff9d355396ddc"
+          "sha256": "7ac80b3879a19a5d761091d5424fda232c3b71bcc5a975f32e6c95f8df5cd1a8"
         },
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part02",
+          "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-law-v2026.11.4.1/Actelyo-Law-Harness-Setup-2026.11.4.1-x64.exe.part02",
           "bytes": 1000000000,
-          "sha256": "760804623388a8c222fe2dd7c0ad0968522c3f2522226c44d935c861cffcbdaa"
+          "sha256": "efe24869fb258e141cde59679f829193ffaf2a2894d23465f0be597b498d54a4"
         },
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-e86e627/Actelyo-Law-Harness-Setup-x64.exe.part03",
-          "bytes": 191623141,
-          "sha256": "ab293bfeb90b2963e2887fc6bcd5032aca20c32d1d349b6dd2cf4f3ef574128c"
+          "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-law-v2026.11.4.1/Actelyo-Law-Harness-Setup-2026.11.4.1-x64.exe.part03",
+          "bytes": 194215635,
+          "sha256": "45aa15aa526152657f839daeca9310fb6d7a1ed0d325dbaf1cb85dbbdc51c78d"
         }
-      ]
+      ],
+      "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-law-v2026.11.4.1/Actelyo-Law-Harness-2026.11.4.1-Kit.zip"
     },
     {
       "id": "rag",
       "name": "Actelyo RAG Desktop",
       "category": "desktop",
-      "version": "1.0.2",
+      "version": "1.0.5",
       "description": "Bibliothèque documentaire locale, recherche assistée et préparation de corpus juridiques structurés.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-v1.0.2/Actelyo-RAG-Desktop-Setup-1.0.2-x64.exe",
-      "file": "Actelyo-RAG-Desktop-Setup-1.0.2-x64.exe",
-      "bytes": 490163811,
-      "sha256": "8bb5a6d2435899ec68593e1b358456bd81a713d8b28f2363f10385dad8fac128",
-      "note": "Import juridique local par article depuis le menu : citations, pages, textes FR/EN/AR et séparation des articles déclarés abrogés. Évaluation locale Recall@k et MRR incluse. Aucun corpus ni modèle fourni."
+      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.5/Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
+      "bytes": 490522313,
+      "sha256": "10e15996a12ede0207f5b99ce6e8a75e8d295d35cff81b939f5d5d504b97bfb7",
+      "note": "Logo Actelyo RAG (cyan) intégré. Corrige la collecte de documents via API Desktop : dossier identique au collecteur de l’interface. Installation et upload API réel vérifiés. Aucun corpus ni modèle fourni."
     },
     {
       "id": "llm",
-      "name": "Actelyo LLM Desktop",
+      "name": "Actelyo LLM Studio",
       "category": "desktop",
-      "version": "3.0.1",
+      "version": "3.0.3",
       "description": "Studio LLM local Actelyo, catalogue Hugging Face et Agent Projets.",
       "platform": "Windows x64 · CPU",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
       "sourcePrivate": true,
-      "note": "Logo Actelyo, recherche et telechargement GGUF Hugging Face verifies, bibliotheque, conversations et Agent Projets avec confirmation. Moteurs CPU et Vulkan inclus. Sans modele ni donnees personnelles.",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe",
-      "file": "Actelyo-LLM-Desktop-Setup-3.0.1-x64.exe",
-      "bytes": 216998574,
-      "sha256": "ad5395d47524189b184ba8df80a22fef9f4f5605cd028945627bfab3a041bbf7"
+      "note": "Logo Actelyo LLM Studio (rouge) sur l’exécutable, l’installateur et les raccourcis. Construite depuis les sources 3.0.3 : le test matériel fonctionne avec les modèles à raisonnement (Qwen3…), et la version est la même partout (Windows, application, /health). Met à jour la 3.0.2 sur place sans toucher aux données.",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.3/Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
+      "file": "Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
+      "bytes": 192804085,
+      "sha256": "904290a09bd873d4f57efdbe5c0baa7d673c36bc727a0bd9d2fd9a770429ab8d"
+    },
+    {
+      "id": "openbousic",
+      "name": "Actelyo OpenBousic",
+      "category": "desktop",
+      "version": "2.0.163",
+      "description": "Assistant de développement autonome pour modèles locaux : planification, exécution, terminal, sessions et interface web.",
+      "platform": "Windows x64",
+      "repo": "https://github.com/jeanneretsamy-ux/Actelyo-OpenBousic",
+      "sourcePrivate": true,
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-openbousic-v2.0.163/Actelyo-OpenBousic-Setup-2.0.163-x64.exe",
+      "file": "Actelyo-OpenBousic-Setup-2.0.163-x64.exe",
+      "bytes": 262599544,
+      "sha256": "3bc26551e891d0bafa0a59a5ca5adba97e14e3a8f673c3893b4b5ddc57ab647d",
+      "note": "Application Windows avec logo jaune. Connexion aux onglets Chrome/Edge via l’extension officielle, avec choix des onglets et autorisation dans le navigateur. Moteur Playwright intégré à l’application Desktop, sans installation npm requise. Un serveur de modèle compatible OpenAI reste à configurer."
     },
     {
       "id": "qwen-small",
@@ -124,5 +139,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.1/Actelyo-Download-Kit-LLM-3.0.1.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.1/Actelyo-Suite-1.0.1-Kit.zip"
 }

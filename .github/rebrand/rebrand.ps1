@@ -9,9 +9,12 @@ param(
   [Parameter(Mandatory)] [string] $ShortcutName,
   [Parameter(Mandatory)] [string] $Version,
   [Parameter(Mandatory)] [string] $OutputBase,
-  [Parameter(Mandatory)] [string] $Icon
+  [Parameter(Mandatory)] [string] $Icon,
+  [string] $WindowIconResource = '',
+  [switch] $KeepWholeInstaller
 )
 $ErrorActionPreference = 'Stop'
+if ($env:GITHUB_ACTIONS -ne 'true' -or $Id -notmatch '^[a-z0-9-]+$') { throw 'This packaging helper requires its isolated GitHub runner and a safe product id' }
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
 $out = Join-Path $env:GITHUB_WORKSPACE "out/$Id"; New-Item -ItemType Directory -Force $out | Out-Null
 $proof = Join-Path $out 'proof'; New-Item -ItemType Directory -Force $proof | Out-Null
@@ -42,20 +45,23 @@ if ((Get-FileHash $src -Algorithm SHA256).Hash -ne $Sha256.ToUpper()) { throw 's
 
 # 2. Install it to a short path (deep Python paths), read its AppId
 $stage = "C:\s\$Id"
-$p = Start-Process $src -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/NOICONS',"/DIR=`"$stage`"" -Wait -PassThru
+$p = Start-Process $src -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/NOICONS',"/DIR=`"$stage`"" -WindowStyle Hidden -Wait -PassThru
 if ($p.ExitCode) { throw "source install failed: $($p.ExitCode)" }
 $entry = @(Entries)[0]; if (-not $entry) { throw 'source install not registered' }
+if ([IO.Path]::GetFullPath($entry.InstallLocation).TrimEnd('\') -ne [IO.Path]::GetFullPath($stage).TrimEnd('\')) { throw 'Source registration is outside the packaging stage' }
 $appId = ($entry.PSChildName -replace '_is1$', '')
 if ($appId -notmatch '^\{[0-9A-Fa-f-]{36}\}$') { throw "unexpected AppId $appId" }
 Write-Host "Source: $($entry.DisplayName) $($entry.DisplayVersion) AppId=$appId"
 $exe = Join-Path $stage $ExeName; if (-not (Test-Path $exe)) { throw "missing $exe" }
+$sourceCodeHash = (Get-FileHash (Join-Path $stage 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant()
 SaveIcon $exe 'before-app-icon.png'
 
 # 3. Copy the application, uninstall the source, stamp the logo + version on the exe
 $app = "C:\p\$Id"
 & robocopy $stage $app /E /XF 'unins*.exe' 'unins*.dat' 'unins*.msg' /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed $LASTEXITCODE" }
-$u = Start-Process ($entry.UninstallString -replace '"', '') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+$u = Start-Process ($entry.UninstallString -replace '"', '') -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
+if ($u.ExitCode) { throw 'Source uninstall did not complete' }
 Start-Sleep 5
 $rcedit = Join-Path $env:RUNNER_TEMP 'rcedit-x64.exe'
 & curl.exe -fsSL --retry 3 -o $rcedit 'https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe'
@@ -63,6 +69,13 @@ if ((Get-FileHash $rcedit -Algorithm SHA256).Hash -ne '3E7801DB1A5EDBEC91B49A24A
 $appExe = Join-Path $app $ExeName
 & $rcedit $appExe --set-icon $Icon --set-product-version $Version --set-file-version $Version --set-version-string ProductName $AppName --set-version-string FileDescription $AppName --set-version-string CompanyName 'Actelyo'
 if ($LASTEXITCODE) { throw 'rcedit failed' }
+if ($WindowIconResource) {
+  if ($WindowIconResource -notmatch '^resources[\\/][a-zA-Z0-9-]+\.ico$') { throw 'Unexpected window icon resource path' }
+  $windowIcon = Join-Path $app $WindowIconResource
+  if (-not (Test-Path -LiteralPath $windowIcon -PathType Leaf)) { throw 'Expected installed window icon resource missing' }
+  Copy-Item -LiteralPath $Icon -Destination $windowIcon -Force
+}
+if ((Get-FileHash (Join-Path $app 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sourceCodeHash) { throw 'The public application code changed during branding' }
 
 # 4. Compile with pinned, signature-checked Inno Setup 7 (handles long paths and > 2 GB setups)
 $inno = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
@@ -70,17 +83,19 @@ Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_
 $sig = Get-AuthenticodeSignature $inno
 if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Pyrsys B\.V\.') { throw 'Inno Setup signature check failed' }
 $innoRoot = Join-Path $env:RUNNER_TEMP 'Inno7'
-$ip = Start-Process $inno -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$innoRoot" -Wait -PassThru
+$ip = Start-Process $inno -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$innoRoot" -WindowStyle Hidden -Wait -PassThru
 if ($ip.ExitCode) { throw 'Inno Setup install failed' }
 $iss = Join-Path $env:GITHUB_WORKSPACE '.github/rebrand/installer.iss'
 & (Join-Path $innoRoot 'ISCC.exe') "/DAppSource=$app" "/DAppId={$appId" "/DAppName=$AppName" "/DAppVersion=$Version" "/DDirName=$DirName" "/DExeName=$ExeName" "/DShortcutName=$ShortcutName" "/DOutputDir=$out" "/DOutputBase=$OutputBase" "/DAppIcon=$Icon" $iss
 if ($LASTEXITCODE) { throw 'ISCC failed' }
 $setup = Join-Path $out "$OutputBase.exe"
-Remove-Item -Recurse -Force $app
+$resolvedApp = [IO.Path]::GetFullPath($app)
+if ($resolvedApp -ne ('C:\p\'+$Id) -or -not $resolvedApp.StartsWith('C:\p\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Packaging cleanup target is outside C:\p' }
+Remove-Item -LiteralPath $resolvedApp -Recurse -Force
 SaveIcon $setup 'installer-icon.png'
 
 # 5. QA: fresh install, shortcuts, icon, launch, window
-$p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/LOG=`"$out\install.log`"" -Wait -PassThru
+$p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/LOG=`"$out\install.log`"" -WindowStyle Hidden -Wait -PassThru
 if ($p.ExitCode) { throw "new installer failed: $($p.ExitCode)" }
 $e = @(Entries)[0]; if (-not $e) { throw 'new install not registered' }
 if ($e.PSChildName -ne "${appId}_is1") { throw 'AppId changed: upgrade would not replace the old version' }
@@ -93,7 +108,7 @@ SaveIcon (Join-Path $installed $ExeName) 'after-app-icon.png'
 $proc = Start-Process (Join-Path $installed $ExeName) -WorkingDirectory $installed -PassThru
 Start-Sleep 75
 Shot 'app-running.png'
-$fam = @(Get-Process | Where-Object { try { $_.Path -and $_.Path.StartsWith($installed, 'OrdinalIgnoreCase') } catch { $false } })
+$fam = @(Get-Process | Where-Object { try { $_.Path -and $_.Path.StartsWith($installed.TrimEnd('\')+'\', 'OrdinalIgnoreCase') } catch { $false } })
 $titles = @($fam | Where-Object MainWindowTitle | ForEach-Object MainWindowTitle | Select-Object -Unique)
 $fam | Stop-Process -Force -ErrorAction SilentlyContinue
 $vi = (Get-Item (Join-Path $installed $ExeName)).VersionInfo
@@ -103,11 +118,13 @@ $report = [ordered]@{ id = $Id; appId = $appId; displayName = $e.DisplayName; di
 $report | ConvertTo-Json | Set-Content (Join-Path $proof 'report.json') -Encoding utf8
 Write-Host ($report | ConvertTo-Json)
 if ($fam.Count -eq 0 -or $titles.Count -eq 0) { throw 'application did not open a window' }
+if ((Get-FileHash (Join-Path $installed 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sourceCodeHash) { throw 'Installed public application code differs from the source installer' }
 
 # 6. Checksums (+ < 2 GB parts for GitHub release assets)
 $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
 "$hash  $OutputBase.exe" | Set-Content (Join-Path $out 'SHA256SUMS.txt')
 $len = (Get-Item $setup).Length
+@{ id=$Id; version=$Version; sha256=$hash; bytes=$len; sourceInstallerSha256=$Sha256; publicApplicationAsarSha256=$sourceCodeHash; publicCodeUnchanged=$true; windowIconResource=$WindowIconResource; iconSha256=(Get-FileHash $Icon -Algorithm SHA256).Hash.ToLowerInvariant(); appId=$appId } | ConvertTo-Json | Set-Content (Join-Path $out 'build-manifest.json') -Encoding UTF8
 "SETUP_BYTES=$len" >> $env:GITHUB_ENV; "SETUP_SHA256=$hash" >> $env:GITHUB_ENV
 if ($len -gt 1900000000) {
   $buf = New-Object byte[] (8MB); $in = [IO.File]::OpenRead($setup); $n = 1
@@ -116,7 +133,7 @@ if ($len -gt 1900000000) {
     while ($w -lt 1000000000 -and ($r = $in.Read($buf, 0, [Math]::Min($buf.Length, 1000000000 - $w))) -gt 0) { $o.Write($buf, 0, $r); $w += $r }
     $o.Dispose(); $n++
   }
-  $in.Dispose(); Remove-Item $setup
+  $in.Dispose(); if (-not $KeepWholeInstaller) { Remove-Item -LiteralPath $setup }
   Get-ChildItem $out -Filter '*.part*' | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Add-Content (Join-Path $out 'SHA256SUMS.txt')
 }
 Get-ChildItem $out | Format-Table Name, Length

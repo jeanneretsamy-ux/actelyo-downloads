@@ -1,0 +1,71 @@
+name: Correct Law Harness Windows branding
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/law-branding-revision]
+    paths: ['.github/rebrand/**', '.github/branding/**', '.github/workflows/law-branding-revision.yml', 'scripts/law-branding-catalog.cjs', 'tests/law-branding-smoke.mjs', 'tests/installed-branding.ps1']
+permissions:
+  contents: write
+jobs:
+  law-branding:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - run: npm ci --prefix suite/qa/runtime --ignore-scripts --no-audit --no-fund
+      - name: Repackage only the verified public runtime and replace its Windows logos
+        run: >-
+          ./.github/rebrand/rebrand.ps1 -Id law-harness
+          -Urls 'https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.4/Actelyo-Law-Harness-Setup-2026.11.4-x64.exe.part01;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.4/Actelyo-Law-Harness-Setup-2026.11.4-x64.exe.part02;https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.4/Actelyo-Law-Harness-Setup-2026.11.4-x64.exe.part03'
+          -Sha256 ece567ca017cef7a18c96776f019d6f70a81a882af1c83063e615bbc86d20a55
+          -NamePattern 'Actelyo Law*' -AppName 'Actelyo Law Harness' -ExeName 'Actelyo Law Harness.exe'
+          -DirName ActelyoLawHarness -ShortcutName 'Actelyo Law Harness' -Version 2026.11.4.1
+          -OutputBase Actelyo-Law-Harness-Setup-2026.11.4.1-x64 -Icon .github/branding/actelyo-law.ico
+          -WindowIconResource resources/icon.ico -KeepWholeInstaller
+      - name: Bind candidate metadata to the unchanged public code and installer hashes
+        run: node scripts/law-branding-catalog.cjs out/law-harness
+      - name: Verify installer, EXE and both shortcuts against the violet reference
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/installed-branding.ps1 -InstalledJson out/law-harness/installed.json -Apps law-harness
+          if ($LASTEXITCODE) { throw 'Law branding failed' }
+      - name: Exercise the installed Atelier and literal source verifier
+        run: node tests/law-branding-smoke.mjs out/law-harness/installed.json
+      - name: Build the small standalone installation kit
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE 'out/law-harness'
+          $kit = Join-Path $env:RUNNER_TEMP 'law-kit'; New-Item -ItemType Directory -Path $kit | Out-Null
+          Copy-Item suite/Installer-ActelyoSuite.ps1,suite/ActelyoSuite.psm1 -Destination $kit
+          $catalog = Get-Content "$out/candidate-catalog.json" -Raw | ConvertFrom-Json
+          $law = $catalog.items | Where-Object id -eq 'law-harness'
+          @{schemaVersion=1;revision=$catalog.revision;items=@($law);kitUrl=$law.kitUrl} | ConvertTo-Json -Depth 20 | Set-Content "$kit/catalog.json" -Encoding UTF8
+          $suite = Get-Content suite/suite.json -Raw | ConvertFrom-Json
+          $suite.applications=@($suite.applications | Where-Object id -eq 'law-harness');$suite.models=@()
+          $suite | ConvertTo-Json -Depth 10 | Set-Content "$kit/suite.json" -Encoding UTF8
+          @('@echo off','powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Installer-ActelyoSuite.ps1" -Mode Install -Apps law-harness -SkipVerification','set "result=%errorlevel%"','pause','exit /b %result%') | Set-Content "$kit/Installer.cmd" -Encoding ASCII
+          'Extraire le ZIP puis ouvrir Installer.cmd. Les parties sont verifiees et assemblees. Vos donnees sont conservees ; une version plus recente est gardee. Un modele doit etre configure dans l application. Les preuves QA sont jointes a la release.' | Set-Content "$kit/LIRE-MOI.txt" -Encoding UTF8
+          Compress-Archive -Path "$kit/*" -DestinationPath "$out/Actelyo-Law-Harness-2026.11.4.1-Kit.zip"
+      - name: Preserve small native and functional evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: law-branding-proof-${{ github.run_id }}
+          path: |
+            out/law-harness/*.json
+            out/law-harness/*.txt
+            out/law-harness/proof/**/*.json
+            out/law-harness/proof/**/*.png
+          retention-days: 14
+      - name: Stage a distinct immutable draft release after all checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = @(Get-ChildItem out/law-harness -File | Where-Object { $_.Name -like '*.part*' -or $_.Name -like '*Kit.zip' -or $_.Name -eq 'SHA256SUMS.txt' -or $_.Name -eq 'build-manifest.json' -or $_.Name -eq 'candidate-catalog.json' } | ForEach-Object FullName)
+          $files += @((Resolve-Path out/law-harness/proof/functional-proof.json).Path,(Resolve-Path out/law-harness/proof/branding/branding.json).Path,(Resolve-Path out/law-harness/proof/branding/contact-sheet.png).Path)
+          gh release create desktop-law-v2026.11.4.1 @files --draft --target $env:GITHUB_SHA --title 'Actelyo Law Harness 2026.11.4.1 - logo Windows' --notes 'Revision des logos Windows depuis le runtime public 2026.11.4 verifie par SHA-256. Le code app.asar reste identique. Installateur, executable et raccourcis controles ; Atelier et verification des references testes. Ne remplace aucun fichier public existant.'
+          if ($LASTEXITCODE) { throw 'Draft release creation failed; existing versions are never overwritten' }

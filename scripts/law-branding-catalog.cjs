@@ -1,0 +1,21 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const out=path.resolve(process.argv[2]||'out/law-harness'),version='2026.11.4.1';
+const read=p=>JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,''));
+const catalog=read(path.resolve(__dirname,'../catalog.json')),base=catalog.items.find(i=>i.id==='law-harness');
+const manifest=read(path.join(out,'build-manifest.json')),installed=read(path.join(out,'proof/report.json'));
+const hash=async file=>{const h=crypto.createHash('sha256');for await(const chunk of fs.createReadStream(file))h.update(chunk);return h.digest('hex')};
+(async()=>{
+ if(manifest.id!=='law-harness'||manifest.version!==version||manifest.sourceInstallerSha256!==base.sha256||manifest.publicCodeUnchanged!==true||manifest.windowIconResource!=='resources/icon.ico')throw Error('Unexpected public source or packaging scope');
+ if(manifest.iconSha256!==await hash(path.resolve(__dirname,'../.github/branding/actelyo-law.ico')))throw Error('Unapproved product icon');
+ const file='Actelyo-Law-Harness-Setup-'+version+'-x64.exe',setup=path.join(out,file);
+ if(fs.statSync(setup).size!==manifest.bytes)throw Error('Candidate installer size mismatch');
+ const release='https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-law-v'+version;
+ const parts=[];for(const name of fs.readdirSync(out).filter(n=>n.startsWith(file+'.part')).sort())parts.push({url:release+'/'+name,bytes:fs.statSync(path.join(out,name)).size,sha256:await hash(path.join(out,name))});
+ if(parts.length!==3||parts.reduce((n,p)=>n+p.bytes,0)!==manifest.bytes)throw Error('Incomplete installer parts');
+ const candidate={...base,version,file,bytes:manifest.bytes,sha256:manifest.sha256,parts,kitUrl:release+'/Actelyo-Law-Harness-'+version+'-Kit.zip',note:'Logo violet de référence sur l’installateur, l’exécutable, la fenêtre et les raccourcis Windows. Révision de présentation de la version 2026.11.4, sans changement du code applicatif public. Modèle à configurer séparément.'};delete candidate.url;
+ catalog.items=catalog.items.map(i=>i.id===candidate.id?candidate:i);catalog.revision=new Date().toISOString();
+ fs.writeFileSync(path.join(out,'candidate-catalog.json'),JSON.stringify(catalog,null,2));
+ const receipt={schemaVersion:1,applications:[{id:'law-harness',version,directory:installed.installLocation,executable:path.join(installed.installLocation,'Actelyo Law Harness.exe')}],modelsDirectory:out,catalog,reportDirectory:path.join(out,'proof')};
+ fs.writeFileSync(path.join(out,'installed.json'),JSON.stringify(receipt,null,2));
+ console.log(JSON.stringify({version,sourceInstallerSha256:manifest.sourceInstallerSha256,sha256:manifest.sha256,bytes:manifest.bytes,parts:parts.length,publicCodeUnchanged:true}));
+})().catch(e=>{console.error(e.message);process.exitCode=1});

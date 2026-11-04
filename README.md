@@ -4,7 +4,7 @@
 
 ## Kit commun Windows
 
-[Télécharger Actelyo Suite 1.0.0](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.0/Actelyo-Suite-1.0.0-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Pour un utilisateur, ce ZIP contient les scripts et le moteur QA nécessaires ; le ZIP « Code » du dépôt est destiné aux développeurs.
+[Télécharger Actelyo Suite 1.0.1](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.1/Actelyo-Suite-1.0.1-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Pour un utilisateur, ce ZIP contient les scripts et le moteur QA nécessaires ; le ZIP « Code » du dépôt est destiné aux développeurs.
 
 Le kit installe les six composants du catalogue : LLM Studio, ERP, RAG Desktop, RAG-Anything, Law Harness et OpenBousic. Il vérifie les empreintes, préserve les versions déjà à jour et contrôle l’espace avant chaque installation. Prévoir environ **35 Go libres** sur un Windows x64 neuf ; le plan affiche le besoin exact par disque. Les deux modèles publics de test sont téléchargés séparément.
 
@@ -15,6 +15,8 @@ Pour préparer un autre ordinateur ou choisir un autre disque de téléchargemen
 Installateurs Windows, modèles GGUF et kit de services Docker. Le catalogue `catalog.json` contient les versions, tailles et SHA-256 des fichiers publiés. L'ERP desktop utilise ce catalogue et vérifie les fichiers avant de proposer leur ouverture.
 
 Le kit ZIP télécharge les applications et modèles, et assemble les parties de Law Harness. Les données utilisateur, corpus et poids privés ne sont pas distribués. Les modèles publics restent séparés des installateurs.
+
+Pour maintenir le catalogue, modifier `catalog.json` puis exécuter `node scripts/sync-download-catalog.cjs --write` et inclure `docs/desktop-catalog.json` dans le même changement. La QA vérifie cette égalité, le parcours de secours du portail dans un vrai navigateur, les icônes Windows des installateurs/EXE/raccourcis et les échanges techniques entre applications.
 
 Actelyo LLM possède sa propre interface et utilise llama.cpp. Son connecteur LM Studio emploie le SDK ouvert ; l'interface propriétaire LM Studio n'est pas incluse.
 
