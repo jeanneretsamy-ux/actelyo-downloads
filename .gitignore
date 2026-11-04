@@ -4,5 +4,9 @@ suite/Paquets-Actelyo/
 suite/Rapports/
 suite-build/
 /suite-proof/
+/suite/Paquets-Actelyo/
+/suite/Rapports/
+/suite/catalog.json
+/startup-proof/
 /erp-proof/
 /out/

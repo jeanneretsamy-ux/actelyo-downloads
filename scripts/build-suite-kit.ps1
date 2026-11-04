@@ -10,10 +10,10 @@ if(-not(Test-Path (Join-Path $source 'qa/runtime/node_modules/playwright-core/pa
 $staging=Join-Path $OutputDirectory ([guid]::NewGuid().ToString('N'))
 $kit=Join-Path $staging ('Actelyo-Suite-'+$definition.version)
 New-Item -ItemType Directory -Path $kit -Force | Out-Null
-foreach($name in @('Installer.cmd','Verifier.cmd','Installer-ActelyoSuite.ps1','ActelyoSuite.psm1','suite.json','LIRE-MOI.md','qa')){
+foreach($name in @('Installer.cmd','Verifier.cmd','Installer-ModelesActelyo.cmd','Installer-ModelesActelyo.ps1','Installer-ActelyoSuite.ps1','ActelyoSuite.psm1','suite.json','LIRE-MOI.md','qa')){
     Copy-Item -LiteralPath (Join-Path $source $name) -Destination $kit -Recurse
 }
-foreach($name in @('Installer.cmd','Verifier.cmd')){
+foreach($name in @('Installer.cmd','Verifier.cmd','Installer-ModelesActelyo.cmd')){
     $file=Join-Path $kit $name
     [IO.File]::WriteAllText($file,([IO.File]::ReadAllText($file) -replace '\r?\n',"`r`n"),[Text.Encoding]::ASCII)
 }

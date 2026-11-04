@@ -1,23 +1,23 @@
-# Applications Actelyo
+# Applications et modèles Actelyo
 
 [Centre de téléchargement](https://jeanneretsamy-ux.github.io/actelyo-downloads/)
 
 ## Kit commun Windows
 
-[Télécharger Actelyo Suite 1.0.2](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.2/Actelyo-Suite-1.0.2-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Pour un utilisateur, ce ZIP contient les scripts et le moteur QA nécessaires ; le ZIP « Code » du dépôt est destiné aux développeurs.
+[Télécharger Actelyo Suite 1.1.0](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.1.0/Actelyo-Suite-1.1.0-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Le ZIP « Code » est destiné aux développeurs.
 
-Le kit installe les six composants du catalogue : LLM Studio, ERP, RAG Desktop, RAG-Anything, Law Harness et OpenBousic. Il vérifie les empreintes, préserve les versions déjà à jour et contrôle l’espace avant chaque installation. Prévoir environ **35 Go libres** sur un Windows x64 neuf ; le plan affiche le besoin exact par disque. Les deux modèles publics de test sont téléchargés séparément.
+Le kit installe LLM Studio, ERP, RAG Desktop, RAG-Anything, Law Harness et OpenBousic. Il contrôle les SHA-256, l’espace et les versions, puis vérifie le démarrage et les cinq interfaces dans des profils séparés. Prévoir environ **35 Go libres** sur un poste Windows x64 neuf, plus les modèles choisis ; le plan affiche le besoin par disque.
 
-**Verifier.cmd** teste les applications installées avec des profils et des pièces synthétiques séparés : génération et embeddings dans LLM Studio, recherches ERP/RAG, moteur secondaire RAG-Anything, transfert des références ERP vers Law Harness et génération par le fournisseur OpenBousic. Les rapports JSON/HTML distinguent installation, échanges réussis, échecs et contrôles bloqués. La certification juridique des modèles, la synchronisation des dossiers personnels et l’ensemble des fonctionnalités de chaque application ne sont pas déduits de ces tests techniques. Consulter les résultats associés à la version du kit dans sa release.
+Le choix des modèles est exclusivement Actelyo : **LegalYA v36 R2**, **LegalYA Architect V37** et **Qushu Embed**. **Matousse Decision 10K** est présenté comme candidat expérimental et ne figure pas dans les choix d’installation automatique. Aucun modèle générique n’est proposé ou téléchargé par défaut.
 
-Pour préparer un autre ordinateur ou choisir un autre disque de téléchargement, voir [le guide du kit](suite/LIRE-MOI.md). Les fichiers déjà téléchargés et vérifiés peuvent être réutilisés ; aucun modèle ni corpus privé n’est inclus.
+Les poids restent sur les dépôts privés Hugging Face d’Actelyo. Le kit demande un accès autorisé, par saisie masquée, sans enregistrer le jeton. **Installer-ModelesActelyo.cmd** reprend cette sélection séparément. Les fichiers sont téléchargés à une révision figée et vérifiés individuellement. Les GGUF LegalYA sont à importer dans LLM Studio. Qushu utilise **Sentence Transformers**, pas GGUF : son service d’inférence reste à configurer séparément. Télécharger les poids ne certifie ni le chargement sur votre matériel ni la qualité juridique.
 
-Installateurs Windows, modèles GGUF et kit de services Docker. Le catalogue `catalog.json` contient les versions, tailles et SHA-256 des fichiers publiés. L'ERP desktop utilise ce catalogue et vérifie les fichiers avant de proposer leur ouverture.
+**Verifier.cmd** contrôle le démarrage, l’affichage et les commandes accessibles des applications. Son rapport distingue ce diagnostic de la QA complète d’inférence et d’indexation. La configuration des modèles et la synchronisation des dossiers personnels ne sont pas effectuées par ce diagnostic.
 
-Le kit ZIP télécharge les applications et modèles, et assemble les parties de Law Harness. Les données utilisateur, corpus et poids privés ne sont pas distribués. Les modèles publics restent séparés des installateurs.
+## Validation technique interne
 
-Pour maintenir le catalogue, modifier `catalog.json` puis exécuter `node scripts/sync-download-catalog.cjs --write` et inclure `docs/desktop-catalog.json` dans le même changement. La QA vérifie cette égalité, le parcours de secours du portail dans un vrai navigateur, les icônes Windows des installateurs/EXE/raccourcis et les échanges techniques entre applications.
+La CI continue de tester les six installations, les échanges réels et les 20 icônes Windows. Ses modèles de référence Qwen et Nomic sont définis uniquement dans `tests/qa-models.json`, absent du kit utilisateur. Ils ne sont pas renommés Actelyo. Aucune clé ni poids privés n’est transmis à la CI publique. Ce résultat ne constitue pas une validation d’inférence de LegalYA, Qushu ou Matousse.
 
-Actelyo LLM possède sa propre interface et utilise llama.cpp. Son connecteur LM Studio emploie le SDK ouvert ; l'interface propriétaire LM Studio n'est pas incluse.
+Pour maintenir le catalogue, modifier `catalog.json`, puis exécuter `node scripts/sync-download-catalog.cjs --write`. Inclure `docs/desktop-catalog.json` dans le même changement. La QA vérifie que les modèles étrangers d’un ancien catalogue ne sont pas proposés et que les modèles privés ne déclenchent pas de téléchargement anonyme.
 
-Docker fournit des services, et les interfaces graphiques Windows utilisent les EXE. Voir les limites de validation dans le LISEZ-MOI du kit Docker.
+Actelyo LLM utilise llama.cpp. Son connecteur LM Studio emploie le SDK ouvert ; l’interface propriétaire LM Studio n’est pas incluse. Docker fournit des services séparés des interfaces Windows.

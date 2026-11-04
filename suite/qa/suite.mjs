@@ -21,6 +21,9 @@ const report = { schemaVersion: 1, startedAt: new Date().toISOString(), status: 
   scope: 'Real installed applications, shared LLM Studio server, embeddings, ERP retrieval, secondary RAG, source transfer to Law Harness, RAG Desktop and OpenBousic protocol interoperability. Synthetic data only; not legal accuracy, browser control or exhaustive per-app feature certification.',
   catalogRevision: input.catalog.revision, applications: input.applications, steps: [] };
 const erpProbe=process.argv.includes('--erp-probe');
+const startupOnly=process.argv.includes('--startup-only');
+const startupChecks=new Set(['llm-launch','erp-launch','law-launch','rag-launch','openbousic-launch','simultaneous-coexistence']);
+if(startupOnly){report.diagnosticOnly=true;report.scope='Installed application startup, rendered interfaces and actionable controls only. No model download, inference, embeddings or interoperability certification.';}
 const erpChecks=new Set(['llm-launch','llm-models','llm-chat-and-embeddings','erp-launch','erp-shared-model-and-retrieval']);
 if(erpProbe){report.diagnosticOnly=true;report.scope='Focused ERP to real LLM Studio diagnostic; does not certify the complete suite.';}
 const save = () => fs.writeFileSync(path.join(out, 'qa.json'), JSON.stringify(report, null, 2));
@@ -36,6 +39,7 @@ const fixture = path.join(out, 'piece-qa.txt');
 fs.writeFileSync(fixture, `Pièce synthétique ${marker}. Le 03/11/2026, le dossier ${marker} indique un montant de 7429 euros.\n`);
 
 async function step(id, dependencies, fn) {
+  if(startupOnly){if(!startupChecks.has(id))return;dependencies=dependencies.filter(d=>startupChecks.has(d));}
   if(erpProbe && !erpChecks.has(id))return;
   const item = { id, status: 'running', startedAt: new Date().toISOString() };
   report.steps.push(item); save();
@@ -202,10 +206,19 @@ try {
     // The SDK requires a key field even for the actual anonymous loopback server.
     // This public placeholder is not a user credential and is never sent off-machine.
     const settings={LLM_PROVIDER:'generic-openai',GENERIC_OPEN_AI_BASE_PATH:studio,GENERIC_OPEN_AI_API_KEY:'actelyo-local',GENERIC_OPEN_AI_MODEL_PREF:chatId,GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT:'8192',GENERIC_OPEN_AI_MAX_TOKENS:'256',EMBEDDING_ENGINE:'generic-openai',EMBEDDING_BASE_PATH:studio,GENERIC_OPEN_AI_EMBEDDING_API_KEY:'actelyo-local',GENERIC_OPEN_AI_EMBEDDING_MAX_CONCURRENT_CHUNKS:'4',GENERIC_OPEN_AI_EMBEDDING_PASSAGE_PREFIX:'search_document: ',GENERIC_OPEN_AI_EMBEDDING_QUERY_PREFIX:'search_query: ',EMBEDDING_MODEL_PREF:embeddingId,EMBEDDING_MODEL_MAX_CHUNK_LENGTH:'512',VECTOR_DB:'lancedb',DISABLE_TELEMETRY:'true'};
-    fs.writeFileSync(path.join(data,'server','.env'),Object.entries(settings).map(([k,v])=>k+'='+v).join('\n'));
+    if(!startupOnly)fs.writeFileSync(path.join(data,'server','.env'),Object.entries(settings).map(([k,v])=>k+'='+v).join('\n'));
     await launch('rag',{},['--data-dir='+data]);
     const {page}=active.get('rag');await page.waitForURL(u=>u.hostname==='127.0.0.1',{timeout:240000});
-    active.get('rag').origin=new URL(page.url()).origin;return {origin:active.get('rag').origin};
+    active.get('rag').origin=new URL(page.url()).origin;
+    if(startupOnly){
+      // The fresh welcome page is intentionally short. Verify its real action
+      // instead of treating a minimum amount of prose as proof of readiness.
+      await page.getByText('Welcome',{exact:true}).waitFor({timeout:60000});
+      await page.getByText('Get Started',{exact:true}).click({timeout:15000});
+      await page.getByText('Welcome',{exact:true}).waitFor({state:'hidden',timeout:30000});
+      active.get('rag').onboardingStarted=true;
+    }
+    return {origin:active.get('rag').origin,onboardingStarted:active.get('rag').onboardingStarted};
   });
   await step('rag-shared-model-retrieval', ['rag-launch'], async () => {
     const origin=active.get('rag').origin;
@@ -230,7 +243,7 @@ try {
   let openPort;
   await step('openbousic-launch', ['llm-chat-and-embeddings'], async () => {
     openPort=await freePort();
-    const identity=await launch('openbousic',{ACTELYO_OPENBOUSIC_PORT:String(openPort),ACTELYO_OPENBOUSIC_LLM_URL:studio,ACTELYO_OPENBOUSIC_MODEL_NAME:chatId,ACTELYO_OPENBOUSIC_BACKEND:'llamacpp'});
+    const identity=await launch('openbousic',{ACTELYO_OPENBOUSIC_PORT:String(openPort),...(!startupOnly?{ACTELYO_OPENBOUSIC_LLM_URL:studio,ACTELYO_OPENBOUSIC_MODEL_NAME:chatId,ACTELYO_OPENBOUSIC_BACKEND:'llamacpp'}:{})});
     await active.get('openbousic').page.waitForURL(u=>u.hostname==='127.0.0.1' && u.port===String(openPort),{timeout:120000});
     await json('http://127.0.0.1:'+openPort+'/api/health');
     return {...identity,serverReady:true};
@@ -250,18 +263,23 @@ try {
       assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
       let uiError, capture;
       try{
-        await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
+        if(startupOnly&&id==='rag'){
+          assert(instance.onboardingStarted,'RAG welcome action did not advance');
+          await instance.page.locator('body').filter({hasText:/\S/}).waitFor({timeout:60000});
+        }else{
+          await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
+        }
         await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
       }catch(e){uiError=String(e);}
       try { capture=await captureWindow(instance,path.join(out,id+'-ready.png')); }
       catch(e){uiError=[uiError,String(e)].filter(Boolean).join('\n');}
-      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,url:instance.page.url()});
+      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,onboardingStarted:instance.onboardingStarted,url:instance.page.url()});
       save();
     }
     report.uiChecks=identities;save();
     assert.equal(identities.length,5,'All five GUI applications must remain running');
     assert(identities.every(x=>x.uiReady),'An installed interface is blank or unusable: '+JSON.stringify(identities.filter(x=>!x.uiReady)));
-    await json(studio.replace(/\/v1\/?$/,'')+'/health');
+    if(!startupOnly)await json(studio.replace(/\/v1\/?$/,'')+'/health');
     return {applications:identities,secondaryEngine:'exercised via ERP, not a separate GUI'};
   });
 } finally {
@@ -276,7 +294,7 @@ try {
     instance.log?.end();
   }
   const passed=report.steps.length>0 && report.steps.every(s=>s.status==='pass') && !report.cleanupErrors?.length;
-  report.status=passed?(erpProbe?'diagnostic-pass':'pass'):'fail';
+  report.status=passed?(erpProbe||startupOnly?'diagnostic-pass':'pass'):'fail';
   report.finishedAt=new Date().toISOString();save();
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   fs.writeFileSync(path.join(out,'rapport.html'),`<!doctype html><meta charset="utf-8"><title>QA Suite Actelyo</title><style>body{font:16px Segoe UI;max-width:1000px;margin:40px auto;padding:20px}td,th{padding:12px;text-align:left;border-bottom:1px solid #ddd}pre{white-space:pre-wrap}</style><h1>Suite Actelyo — ${escape(report.status)}</h1><p>${escape(report.scope)}</p><table><tr><th>Contrôle</th><th>Résultat</th><th>Détail</th></tr>${report.steps.map(s=>`<tr><td>${escape(s.id)}</td><td>${escape(s.status)}</td><td><pre>${escape(s.error||JSON.stringify(s.detail,null,2))}</pre></td></tr>`).join('')}</table>`);
