@@ -31,12 +31,13 @@ jobs:
           $started = Get-Date
           $process = Start-Process -FilePath $file -ArgumentList $arguments -WindowStyle Hidden -PassThru
           $finished = $process.WaitForExit(120000)
-          $records = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'Actelyo ERP*' } | Select-Object DisplayName,DisplayVersion,InstallLocation)
+          $records = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'Actelyo ERP*' } | Select-Object DisplayName,DisplayVersion,InstallLocation,DisplayIcon)
+          $executables = @($records | ForEach-Object { $icon = $_.DisplayIcon -replace ',0$',''; $icon=$icon.Trim('"'); if (Test-Path -LiteralPath $icon -PathType Leaf) { @{path=$icon; version=(Get-Item -LiteralPath $icon).VersionInfo.ProductVersion} } })
           $events = @(Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started; Id=1000,1001} -ErrorAction SilentlyContinue | Select-Object Id,ProviderName,Message)
-          @{ mode=$mode; arguments=$arguments; finished=$finished; exitCode=$(if($finished){$process.ExitCode}else{$null}); registrations=$records; events=$events } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $out 'result.json')
+          @{ mode=$mode; arguments=$arguments; finished=$finished; exitCode=$(if($finished){$process.ExitCode}else{$null}); registrations=$records; executables=$executables; events=$events } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $out 'result.json')
           Get-Content (Join-Path $out 'result.json')
           if (-not $finished) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue; throw 'Synthetic CI installer timed out' }
-          if ($process.ExitCode -ne 0 -or $records.Count -ne 1) { throw 'Published installer diagnostic failed' }
+          if ($process.ExitCode -ne 0 -or $records.Count -ne 1 -or $executables.Count -ne 1 -or $executables[0].version -notmatch '^1\.8\.4(?:\.0)?$') { throw 'Published installer diagnostic failed' }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

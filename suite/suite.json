@@ -36,6 +36,7 @@
     },
     {
       "id": "erp",
+      "registryIconFallback": true,
       "registryPattern": "^Actelyo ERP",
       "reserveGiB": 2,
       "executables": [
