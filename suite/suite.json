@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "1.0.2",
+  "version": "1.1.0",
   "headroomGiB": 3,
   "models": [
-    "qwen-small",
-    "nomic-embeddings"
+    "legalya-v36-r2",
+    "legalya-architect-v37",
+    "qushu-embed"
   ],
   "applications": [
     {

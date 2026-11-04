@@ -35,7 +35,24 @@ try{
   checked.push({id:item.id,version:item.version,url:href});
  }
  assert.equal(checked.length,6);
- const proof={status:'pass',scope:'Real browser UI with primary catalogue deliberately unavailable',url,checked};
+ await page.locator('[data-tab="model"]').click();
+ const models=catalog.items.filter(i=>i.category==='model');assert.equal(models.length,4);
+ for(const model of models){
+  const card=page.locator('#item-'+model.id);await card.waitFor();
+  assert.equal(model.publisher,'Actelyo');
+  assert(await card.locator('input[type=checkbox]').isDisabled(),'Private snapshots cannot use anonymous native download');
+  if(model.modelSource)assert.equal(await card.locator('.card-actions a').first().getAttribute('href'),catalog.kitUrl);
+ }
+ assert(!/Qwen3 0\.6B|Nomic Embed/.test(await page.locator('#cards').innerText()));
+ const legacy=await context.newPage();
+ const reference=JSON.parse(fs.readFileSync(path.join(root,'tests/qa-models.json'),'utf8'));
+ const polluted={...catalog,items:[...catalog.items,...reference.items.map((x,i)=>({...x,publisher:i?'Actelyo':'Qwen'}))]};
+ await legacy.route('https://raw.githubusercontent.com/jeanneretsamy-ux/actelyo-downloads/main/catalog.json',route=>route.fulfill({status:503,body:'Controlled QA outage'}));
+ await legacy.route('**/desktop-catalog.json',route=>route.fulfill({json:polluted}));
+ await legacy.goto(url);await legacy.locator('#item-openbousic').waitFor();await legacy.locator('[data-tab="model"]').click();
+ assert.equal(await legacy.locator('#cards .card').count(),4,'Foreign or renamed QA models must not appear');
+ await legacy.close();
+ const proof={status:'pass',scope:'Real browser UI with primary catalogue deliberately unavailable; Actelyo-only models including legacy-catalog rejection',url,checked,models:models.map(m=>({id:m.id,publisher:m.publisher,access:m.access})),foreignModelsFiltered:true};
  if(process.env.ACTELYO_QA_PORTAL_OUT){const out=path.resolve(process.env.ACTELYO_QA_PORTAL_OUT);fs.mkdirSync(out,{recursive:true});await page.screenshot({path:path.join(out,'portal-fallback.png'),fullPage:true});fs.writeFileSync(path.join(out,'portal-fallback.json'),JSON.stringify(proof,null,2));}
  console.log(JSON.stringify(proof));
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

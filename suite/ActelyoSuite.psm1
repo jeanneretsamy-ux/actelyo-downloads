@@ -73,8 +73,9 @@ function Get-SuiteSpacePlan($Items, $Definitions, [string]$DownloadDirectory, [s
         [pscustomobject]@{ volume=$root; requiredBytes=$required; freeBytes=$drive.AvailableFreeSpace; ok=($drive.AvailableFreeSpace -ge $required) }
     }
 }
-function Receive-SuiteItem($Item, [string]$Directory) {
+function Receive-SuiteItem($Item, [string]$Directory, [Security.SecureString]$HuggingFaceToken=$null) {
     Assert-SuiteItem $Item
+    if ($HuggingFaceToken -and ([uri]$Item.url).Host -ne 'huggingface.co') { throw 'Authentification reservee a Hugging Face.' }
     New-Item -ItemType Directory -Path $Directory -Force | Out-Null
     $target = Join-Path ([IO.Path]::GetFullPath($Directory)) $Item.file
     if (Test-Path -LiteralPath $target) {
@@ -83,7 +84,9 @@ function Receive-SuiteItem($Item, [string]$Directory) {
     }
     Add-Type -AssemblyName System.Net.Http
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $client = New-Object Net.Http.HttpClient
+    $handler = New-Object Net.Http.HttpClientHandler
+    if ($HuggingFaceToken) { $handler.AllowAutoRedirect=$false }
+    $client = New-Object Net.Http.HttpClient($handler)
     $client.Timeout = [TimeSpan]::FromHours(2)
     $partial = $target+'.'+[guid]::NewGuid().ToString('N')+'.partial'
     $output = $null
@@ -92,7 +95,32 @@ function Receive-SuiteItem($Item, [string]$Directory) {
         $parts = @(if ($Item.PSObject.Properties['parts']) { $Item.parts } else { $Item })
         foreach ($part in $parts) {
             Write-Host ('Telechargement verifie : '+$Item.name+' ('+$part.bytes+' octets)')
-            $stream = $client.GetStreamAsync([uri]$part.url).GetAwaiter().GetResult()
+            $response=$null
+            if ($HuggingFaceToken) {
+                $uri=[uri]$part.url
+                for($redirect=0;$redirect -le 8;$redirect++) {
+                    if($uri.Scheme -ne 'https' -or $uri.UserInfo -or ($uri.Host -ne 'huggingface.co' -and -not $uri.Host.EndsWith('.huggingface.co') -and -not $uri.Host.EndsWith('.hf.co'))) { throw 'Redirection Hugging Face refusee.' }
+                    $request=New-Object Net.Http.HttpRequestMessage([Net.Http.HttpMethod]::Get,$uri)
+                    try {
+                        if($uri.Host -eq 'huggingface.co') {
+                            $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($HuggingFaceToken)
+                            try {$request.Headers.Authorization=New-Object Net.Http.Headers.AuthenticationHeaderValue('Bearer',[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr))}
+                            finally {[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
+                        }
+                        $response=$client.SendAsync($request,[Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+                    } finally {$request.Dispose()}
+                    if([int]$response.StatusCode -in @(301,302,303,307,308)) {
+                        $location=$response.Headers.Location
+                        if(-not $location){$response.Dispose();throw 'Redirection sans destination.'}
+                        $uri=New-Object uri($uri,$location);$response.Dispose();$response=$null
+                        continue
+                    }
+                    if(-not $response.IsSuccessStatusCode){$status=[int]$response.StatusCode;$response.Dispose();throw ('Acces Hugging Face refuse ou indisponible (HTTP '+$status+'). Verifiez les droits du compte.')}
+                    break
+                }
+                if(-not $response){throw 'Trop de redirections Hugging Face.'}
+                $stream=$response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+            } else {$stream = $client.GetStreamAsync([uri]$part.url).GetAwaiter().GetResult()}
             $hash = [Security.Cryptography.IncrementalHash]::CreateHash([Security.Cryptography.HashAlgorithmName]::SHA256)
             $buffer = New-Object byte[] (1MB)
             [long]$received = 0
@@ -104,7 +132,7 @@ function Receive-SuiteItem($Item, [string]$Directory) {
                 }
                 $digest = ([BitConverter]::ToString($hash.GetHashAndReset())).Replace('-','')
                 if ($received -ne $part.bytes -or $digest -ne $part.sha256) { throw ('Partie incorrecte : '+$Item.id) }
-            } finally { $stream.Dispose(); $hash.Dispose() }
+            } finally { $stream.Dispose(); $hash.Dispose();if($response){$response.Dispose()} }
         }
         $output.Dispose(); $output=$null
         if ((Get-Item -LiteralPath $partial).Length -ne $Item.bytes -or (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $Item.sha256) { throw 'Empreinte finale incorrecte.' }

@@ -5,6 +5,8 @@ param(
     [string]$Destination='',
     [string]$ReportDirectory='',
     [switch]$IncludeTestModels,
+    [string]$TestModelsCatalog='',
+    [switch]$StartupOnly,
     [switch]$Accept,
     [switch]$SkipVerification
 )
@@ -19,6 +21,8 @@ New-Item -ItemType Directory -Path $ReportDirectory -Force | Out-Null
 $reportPath=Join-Path $ReportDirectory 'installation.json'
 function Save-Report { Write-SuiteJson $report $reportPath }
 try {
+    if(-not $IncludeTestModels){$StartupOnly=$true}
+    elseif($StartupOnly){throw 'Le diagnostic utilisateur et le profil QA interne ne peuvent pas etre combines.'}
     if ($Mode -eq 'Verify' -and $SkipVerification) { throw 'Verify ne peut pas ignorer la QA.' }
     if (-not [Environment]::Is64BitOperatingSystem -or $env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { throw 'Ce kit cible Windows x64.' }
     $suite=Read-SuiteJson (Join-Path $PSScriptRoot 'suite.json')
@@ -28,7 +32,12 @@ try {
     if (-not $Apps.Count -or @($Apps | Where-Object {$_ -notin $suite.applications.id}).Count) { throw 'Selection d applications invalide.' }
     $definitions=@($suite.applications | Where-Object {$_.id -in $Apps})
     $ids=@($definitions.id)
-    if ($IncludeTestModels) { $ids+=@($suite.models) }
+    if ($IncludeTestModels) {
+        if (-not $TestModelsCatalog) { throw 'Le profil QA interne exige un catalogue de reference explicite, absent du kit utilisateur.' }
+        $testCatalog=Read-SuiteJson $TestModelsCatalog
+        if($testCatalog.schemaVersion -ne 1 -or -not $testCatalog.items.Count){throw 'Catalogue QA invalide.'}
+        $catalog.items+=@($testCatalog.items);$ids+=@($testCatalog.items.id)
+    }
     $items=@(foreach ($id in $ids) {
         $matches=@($catalog.items | Where-Object {$_.id -eq $id})
         if ($matches.Count -ne 1) { throw ('Entree absente ou dupliquee : '+$id) }
@@ -97,11 +106,13 @@ try {
         $node=Join-Path $nodeOwner.directory 'resources/node/node.exe'
         if (-not (Test-Path -LiteralPath $node)) { throw 'Moteur Node integre absent.' }
         if (-not (Test-Path (Join-Path $PSScriptRoot 'qa/runtime/node_modules/playwright-core/package.json'))) { throw 'Runtime QA absent. Utilisez le ZIP complet du kit.' }
-        & $node (Join-Path $PSScriptRoot 'qa/suite.mjs') (Join-Path $ReportDirectory 'installed.json')
+        $qaArguments=@((Join-Path $PSScriptRoot 'qa/suite.mjs'),(Join-Path $ReportDirectory 'installed.json'))
+        if($StartupOnly){$qaArguments+='--startup-only'}
+        & $node @qaArguments
         if ($LASTEXITCODE -ne 0) { throw ('QA non validee. Voir '+(Join-Path $ReportDirectory 'qa.json')) }
-        $report.interoperability='pass'
+        if($StartupOnly){$report.interoperability='not-tested';$report.startup='pass'}else{$report.interoperability='pass'}
     }
-    $report.status=if($Mode -eq 'Download'){'downloaded'}elseif($SkipVerification){'installed'}else{'pass'}
+    $report.status=if($Mode -eq 'Download'){'downloaded'}elseif($SkipVerification){'installed'}elseif($StartupOnly){'startup-pass'}else{'pass'}
 } catch {
     $report.status='fail'; $report.error=$_.Exception.Message
     Write-Error -Message $_.Exception.Message -ErrorAction Continue

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-04T00:30:01.919Z",
+  "revision": "2026-11-04T01:19:52.048Z",
   "items": [
     {
       "id": "erp",
@@ -94,34 +94,6 @@
       "note": "Application Windows avec logo jaune. Connexion aux onglets Chrome/Edge via l’extension officielle, avec choix des onglets et autorisation dans le navigateur. Moteur Playwright intégré à l’application Desktop, sans installation npm requise. Un serveur de modèle compatible OpenAI reste à configurer."
     },
     {
-      "id": "qwen-small",
-      "name": "Qwen3 0.6B · Q8",
-      "category": "model",
-      "version": "23749fefcc",
-      "description": "Petit modèle généraliste de rédaction pour tester votre moteur local.",
-      "platform": "GGUF",
-      "license": "apache-2.0",
-      "repo": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF",
-      "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
-      "file": "Qwen3-0.6B-Q8_0.gguf",
-      "bytes": 639446688,
-      "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
-    },
-    {
-      "id": "nomic-embeddings",
-      "name": "Nomic Embed Text v1.5 · Q4",
-      "category": "model",
-      "version": "0188c9bf40",
-      "description": "Embeddings locaux pour indexer et rechercher vos documents.",
-      "platform": "GGUF",
-      "license": "apache-2.0",
-      "repo": "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF",
-      "url": "https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/0188c9bf409793f810680a5a431e7b899c46104c/nomic-embed-text-v1.5.Q4_K_M.gguf",
-      "file": "nomic-embed-text-v1.5.Q4_K_M.gguf",
-      "bytes": 84106624,
-      "sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
-    },
-    {
       "id": "rag-anything",
       "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-rag-anything-v1.0.0/Actelyo-RAG-Anything-Setup-1.0.0-x64.exe",
       "file": "Actelyo-RAG-Anything-Setup-1.0.0-x64.exe",
@@ -136,8 +108,157 @@
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop/tree/main/rag-anything",
       "sourcePrivate": true
+    },
+    {
+      "id": "legalya-v36-r2",
+      "name": "Actelyo LegalYA v36 R2",
+      "category": "model",
+      "publisher": "Actelyo",
+      "role": "generation",
+      "version": "8eca1c56f9",
+      "description": "Modèle Actelyo de rédaction juridique.",
+      "platform": "GGUF",
+      "access": "huggingface-private",
+      "statusLabel": "Accès Hugging Face autorisé requis",
+      "bytes": 1246257152,
+      "modelSource": {
+        "repository": "DActelyo/legalya-v36-r2-gguf",
+        "revision": "8eca1c56f91e477de87cf4b5d40db75b94ca85e3",
+        "files": [
+          {
+            "file": "legalya-v36-r2-Q8_0.gguf",
+            "bytes": 1246257152,
+            "sha256": "cbde96c26a5eb641fcac68717a8e5579c0d8a7cbad7a7896e79120535e17484f"
+          }
+        ]
+      },
+      "note": "GGUF de rédaction. Importer le fichier téléchargé dans LLM Studio ; chargement à vérifier selon le matériel."
+    },
+    {
+      "id": "legalya-architect-v37",
+      "name": "Actelyo LegalYA Architect V37",
+      "category": "model",
+      "publisher": "Actelyo",
+      "role": "generation",
+      "version": "65186d3a3a",
+      "description": "Modèle Actelyo de rédaction juridique.",
+      "platform": "GGUF",
+      "access": "huggingface-private",
+      "statusLabel": "Accès Hugging Face autorisé requis",
+      "bytes": 7381384896,
+      "modelSource": {
+        "repository": "DActelyo/legalya-architect-v37-gguf",
+        "revision": "65186d3a3a2c97caab5d8bd7e8c36c17ee2f88b9",
+        "files": [
+          {
+            "file": "LegalYA-Architect-V37-Q4_K_M.gguf",
+            "bytes": 7381384896,
+            "sha256": "34def84a90f394c1c4b19e5df44acfca3cf203fd657ad405b2acb00cd50e7ffe"
+          }
+        ]
+      },
+      "note": "GGUF de rédaction. Prévoir la mémoire nécessaire au chargement de ce modèle de 7,38 Go."
+    },
+    {
+      "id": "qushu-embed",
+      "name": "Actelyo Qushu Embed",
+      "category": "model",
+      "publisher": "Actelyo",
+      "role": "embeddings",
+      "version": "e85908a2f4",
+      "description": "Embeddings Actelyo pour l’indexation et la recherche documentaire.",
+      "platform": "Sentence Transformers",
+      "access": "huggingface-private",
+      "statusLabel": "Accès Hugging Face autorisé requis",
+      "bytes": 574238265,
+      "modelSource": {
+        "repository": "DActelyo/actelyo-qushu-embed",
+        "revision": "e85908a2f43e8ee2649003f43db0767eb2c960bf",
+        "files": [
+          {
+            "file": "1_Pooling/config.json",
+            "bytes": 90,
+            "sha256": "8759bdf7c77efc7df7723f64856a593c8943b71ee38baf2a88771fbaf78438f9"
+          },
+          {
+            "file": "2_Normalize/config.json",
+            "bytes": 97,
+            "sha256": "cdb09dfca347a56aa2d691744e38d5ad3c7cbc2834e7181272b9a15328b82524"
+          },
+          {
+            "file": "README.md",
+            "bytes": 1185,
+            "sha256": "841dc1cb745a20540fb76afe3d23cb00fc50a0a88ebf683a31637de7475ac517"
+          },
+          {
+            "file": "actelyo_metadata.json",
+            "bytes": 514,
+            "sha256": "49bfb5b366867226f1d1e9cf5c100c4b502f655a3f28673c9e3fc46f60e2c9e8"
+          },
+          {
+            "file": "chat_template.jinja",
+            "bytes": 1016,
+            "sha256": "4b852efc0b9960283e735363331e6f325b33bc74bdbaa076f595bc4e9b94d85e"
+          },
+          {
+            "file": "config.json",
+            "bytes": 2376,
+            "sha256": "0c727e30253c52156e6a749617cd00e59bbb3a3c9b2ac17f14d036d2b1e0359d"
+          },
+          {
+            "file": "config_sentence_transformers.json",
+            "bytes": 1326,
+            "sha256": "cb15132d935aa5f79d7d8f3723b577d6f70dbd8d3582d0cb9bbe7f1f4aae30b4"
+          },
+          {
+            "file": "model.safetensors",
+            "bytes": 542056448,
+            "sha256": "10d1a6763ac3ca7f1758a473e6ee26f5ea0e1d97d40bad2c473fd223a9f9c0ac"
+          },
+          {
+            "file": "modules.json",
+            "bytes": 413,
+            "sha256": "3d02572a0455b832de67fb8e63a54981bc7e8b46e337c95e917bd8122a533bfd"
+          },
+          {
+            "file": "processor_config.json",
+            "bytes": 1788,
+            "sha256": "168f6a08522f3ce5dea596d94d003af2fd691742d4f41fe1f9d8cce76bfbf69c"
+          },
+          {
+            "file": "sentence_bert_config.json",
+            "bytes": 747,
+            "sha256": "b1bcd9f2dce3ae863b359e87d0710b5dbc3314a59ecb4e2f97c7778fc8e4b228"
+          },
+          {
+            "file": "tokenizer.json",
+            "bytes": 32170665,
+            "sha256": "22c064aaa468855d6211fe5c2ec8fdec595c97c55eb2ffd3b9fdf71a93b16292"
+          },
+          {
+            "file": "tokenizer_config.json",
+            "bytes": 1600,
+            "sha256": "fd4bc42eca490af2f3ab7e1e22cdef97a8c5a2354146d5700d5d55ecf70f1de5"
+          }
+        ]
+      },
+      "note": "Poids et configuration complets. Ce format demande un service Sentence Transformers ; il ne se charge pas comme un GGUF dans LLM Studio."
+    },
+    {
+      "id": "matousse-decision",
+      "name": "Actelyo Matousse Decision 10K",
+      "category": "model",
+      "publisher": "Actelyo",
+      "role": "decision",
+      "version": "candidate-10k",
+      "description": "Routage et décision structurée, distincts de la rédaction juridique.",
+      "platform": "Adaptateur LoRA + tête de décision",
+      "access": "huggingface-private",
+      "statusLabel": "Candidat expérimental · moteur spécifique requis",
+      "repositoryUrl": "https://huggingface.co/DActelyo/actelyo-matousse-decision-10k-candidate",
+      "note": "Non proposé en installation automatique : adaptateur et modèle de base requis, validation d’inférence à terminer."
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.2/Actelyo-Suite-1.0.2-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.1.0/Actelyo-Suite-1.1.0-Kit.zip"
 }

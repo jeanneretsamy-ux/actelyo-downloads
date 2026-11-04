@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/unified-install-qa, codex/download-branding-qa]
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
   pull_request:
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
 permissions:
   contents: read
 concurrency:
@@ -31,6 +31,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Windows PowerShell core checks failed' }
           & pwsh -NoProfile -File tests/suite-core.ps1
           if ($LASTEXITCODE) { throw 'PowerShell core checks failed' }
+      - name: Only genuine Actelyo models are offered
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/actelyo-models.ps1
+          if ($LASTEXITCODE) { throw 'Actelyo model policy failed' }
+          & pwsh -NoProfile -File tests/actelyo-models.ps1
+          if ($LASTEXITCODE) { throw 'Actelyo model policy failed' }
       - name: Public portal fallback serves the corrected versions
         run: node scripts/sync-download-catalog.cjs --check
       - name: Restore locked QA dependencies
@@ -49,19 +55,26 @@ jobs:
         id: install
         run: |
           Copy-Item catalog.json suite/catalog.json
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File suite/Installer-ActelyoSuite.ps1 -Mode Install -IncludeTestModels -Accept -ReportDirectory "$env:GITHUB_WORKSPACE/suite-proof" -Destination "$env:RUNNER_TEMP/actelyo-packages"
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File suite/Installer-ActelyoSuite.ps1 -Mode Install -IncludeTestModels -TestModelsCatalog tests/qa-models.json -Accept -ReportDirectory "$env:GITHUB_WORKSPACE/suite-proof" -Destination "$env:RUNNER_TEMP/actelyo-packages"
           if ($LASTEXITCODE) { throw 'Suite installation or interoperability did not pass' }
       - name: Verify unmodified public installer, EXE and Windows shortcut logos
         if: success()
         run: |
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/installed-branding.ps1 -InstalledJson suite-proof/installed.json
           if ($LASTEXITCODE) { throw 'Native installer or shortcut branding did not pass' }
+      - name: User startup verification needs no external model
+        run: |
+          Copy-Item catalog.json suite/catalog.json
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File suite/Installer-ActelyoSuite.ps1 -Mode Verify -StartupOnly -ReportDirectory "$env:GITHUB_WORKSPACE/startup-proof"
+          if ($LASTEXITCODE) { throw 'Startup-only verification failed' }
       - name: Preserve evidence, including failed and blocked checks
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: actelyo-suite-windows-${{ github.run_id }}
           path: |
+            startup-proof/*.json
+            startup-proof/*.png
             suite-build/*.zip
             suite-build/kit-manifest.json
             suite-proof/installation.json
