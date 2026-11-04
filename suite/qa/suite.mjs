@@ -209,7 +209,16 @@ try {
     if(!startupOnly)fs.writeFileSync(path.join(data,'server','.env'),Object.entries(settings).map(([k,v])=>k+'='+v).join('\n'));
     await launch('rag',{},['--data-dir='+data]);
     const {page}=active.get('rag');await page.waitForURL(u=>u.hostname==='127.0.0.1',{timeout:240000});
-    active.get('rag').origin=new URL(page.url()).origin;return {origin:active.get('rag').origin};
+    active.get('rag').origin=new URL(page.url()).origin;
+    if(startupOnly){
+      // The fresh welcome page is intentionally short. Verify its real action
+      // instead of treating a minimum amount of prose as proof of readiness.
+      await page.getByText('Welcome',{exact:true}).waitFor({timeout:60000});
+      await page.getByText('Get Started',{exact:true}).click({timeout:15000});
+      await page.getByText('Welcome',{exact:true}).waitFor({state:'hidden',timeout:30000});
+      active.get('rag').onboardingStarted=true;
+    }
+    return {origin:active.get('rag').origin,onboardingStarted:active.get('rag').onboardingStarted};
   });
   await step('rag-shared-model-retrieval', ['rag-launch'], async () => {
     const origin=active.get('rag').origin;
@@ -254,12 +263,17 @@ try {
       assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
       let uiError, capture;
       try{
-        await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
+        if(startupOnly&&id==='rag'){
+          assert(instance.onboardingStarted,'RAG welcome action did not advance');
+          await instance.page.locator('body').filter({hasText:/\S/}).waitFor({timeout:60000});
+        }else{
+          await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
+        }
         await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
       }catch(e){uiError=String(e);}
       try { capture=await captureWindow(instance,path.join(out,id+'-ready.png')); }
       catch(e){uiError=[uiError,String(e)].filter(Boolean).join('\n');}
-      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,url:instance.page.url()});
+      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,onboardingStarted:instance.onboardingStarted,url:instance.page.url()});
       save();
     }
     report.uiChecks=identities;save();
