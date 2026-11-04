@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-03T23:19:15.582Z",
+  "revision": "2026-11-04T00:30:01.919Z",
   "items": [
     {
       "id": "erp",
@@ -139,5 +139,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.1/Actelyo-Suite-1.0.1-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.0.2/Actelyo-Suite-1.0.2-Kit.zip"
 }
