@@ -1,6 +1,9 @@
 name: Diagnose published ERP installer destinations
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/verified-desktop-catalog]
+    paths: [.github/workflows/qa-erp-installer.yml]
 permissions:
   contents: read
 jobs:
