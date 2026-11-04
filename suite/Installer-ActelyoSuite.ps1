@@ -88,6 +88,7 @@ try {
             if (@($spaceNow | Where-Object {-not $_.ok}).Count) { throw 'Espace devenu insuffisant avant installation. Installation suspendue.' }
             $log=Join-Path ([IO.Path]::GetFullPath($ReportDirectory)) ($item.id+'-install.log')
             $installerArguments=@(Get-SuiteInstallerArguments $item $log)
+            $installerStarted=Get-Date
             if ($item.PSObject.Properties['installer'] -and $item.installer -eq 'nsis') {
                 $start=New-Object Diagnostics.ProcessStartInfo
                 $start.FileName=$download; $start.Arguments=($installerArguments -join ' ')
@@ -97,7 +98,12 @@ try {
             } else {
                 $process=Start-Process -FilePath $download -ArgumentList $installerArguments -WindowStyle Hidden -Wait -PassThru
             }
-            if ($process.ExitCode -ne 0) { throw ('Echec de '+$item.id+' : code '+$process.ExitCode+'. Voir '+$log) }
+            if ($process.ExitCode -ne 0) {
+                $events=@(Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=$installerStarted;Id=1000,1001} -ErrorAction SilentlyContinue | Select-Object Id,ProviderName,Message)
+                $facts=@{id=$item.id;exitCode=$process.ExitCode;installer=$download;arguments=$installerArguments;workingDirectory=(Get-Location).Path;powerShellVersion=$PSVersionTable.PSVersion.ToString();events=$events}
+                Write-SuiteJson $facts (Join-Path $ReportDirectory ($item.id+'-installer-diagnostic.json'))
+                throw ('Echec de '+$item.id+' : code '+$process.ExitCode+'. Voir '+$log)
+            }
             $installed=Find-SuiteInstallation $definition (Get-SuiteRegistrations)
             if (-not $installed -or (Compare-SuiteVersion $installed.version $item.version) -lt 0) { throw ('Version installee non confirmee : '+$item.id) }
             $report.steps+=@{id=$item.id;step='install';status='pass';version=$installed.version}; Save-Report
