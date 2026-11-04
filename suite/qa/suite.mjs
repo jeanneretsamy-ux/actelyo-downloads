@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
+import { captureWindow } from './capture.mjs';
 
 const require = createRequire(new URL('./runtime/package.json', import.meta.url));
 const { _electron } = require('playwright-core');
@@ -244,15 +245,18 @@ try {
   });
   await step('simultaneous-coexistence', ['llm-models','erp-launch','law-launch','rag-launch','openbousic-launch'], async () => {
     const identities=[];
+    report.uiChecks=identities;
     for(const [id,instance] of active){
       assert(instance.app.process().exitCode===null,id+' exited');assert(!instance.page.isClosed(),id+' window closed');
-      let uiError;
+      let uiError, capture;
       try{
         await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
         await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
       }catch(e){uiError=String(e);}
-      await instance.page.screenshot({path:path.join(out,id+'-ready.png')});
-      identities.push({id,...instance.identity,uiReady:!uiError,uiError,url:instance.page.url()});
+      try { capture=await captureWindow(instance,path.join(out,id+'-ready.png')); }
+      catch(e){uiError=[uiError,String(e)].filter(Boolean).join('\n');}
+      identities.push({id,...instance.identity,uiReady:!uiError,uiError,capture,url:instance.page.url()});
+      save();
     }
     report.uiChecks=identities;save();
     assert.equal(identities.length,5,'All five GUI applications must remain running');
