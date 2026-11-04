@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [codex/verified-desktop-catalog]
-    paths: [.github/workflows/repackage-erp-public.yml, .github/rebrand/erp-public.ps1, .github/rebrand/erp-public.iss, tests/erp-repack-startup.mjs]
+    paths: [.github/workflows/repackage-erp-public.yml, .github/rebrand/erp-public.ps1, .github/rebrand/erp-public.iss, .github/rebrand/window-branding.ps1, tests/erp-repack-startup.mjs]
 permissions:
   contents: read
 jobs:
@@ -25,9 +25,7 @@ jobs:
       - name: Verify the actual native window icon
         shell: powershell
         run: |
-          $helper=Join-Path $env:RUNNER_TEMP 'verify-native-window.ps1'
-          Invoke-WebRequest 'https://raw.githubusercontent.com/jeanneretsamy-ux/hermes-agentactelyo/64f6e638c5d06dc88d520860acae24c1adc9df31/scripts/actelyo-download/window-branding.ps1' -UseBasicParsing -OutFile $helper
-          if((Get-FileHash $helper -Algorithm SHA256).Hash -ne 'F228E8F228E47FEB4005EC956DEBE06F93D148E018C8BBB8A1177BC49BECB598'){throw 'Native proof helper changed'}
+          $helper='.github/rebrand/window-branding.ps1'
           & $helper -Executable $env:ERP_REPACK_EXE -ExpectedIcon .github/branding/actelyo-erp.ico -ProofDirectory "$env:RUNNER_TEMP/erp-window-proof" -Product 'Actelyo ERP'
           if(-not $?){throw 'Native icon verification failed'}
           Copy-Item "$env:RUNNER_TEMP/erp-window-proof/window-branding.json" erp-repack/native-window-branding.json

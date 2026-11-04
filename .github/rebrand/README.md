@@ -1,0 +1,5 @@
+ERP 1.8.4 r2 repackages only the already public, approved application payload. The build compares every installed application file with that payload, retains the legacy Inno installation identity, verifies a real 1.8.2 upgrade and a persistent profile marker, then tests the conversation UI and native window icon. It does not close running personal applications.
+
+Use the compatible Inno wrapper for the public catalogue. Raw NSIS review builds use a different registration identity and must not replace the legacy update path. An existing NSIS installation is detected by the wrapper and requires a deliberate migration rather than creating a second ERP entry.
+
+`window-branding.ps1` is shared public QA code imported unchanged from `jeanneretsamy-ux/hermes-agentactelyo` commit `64f6e638c5d06dc88d520860acae24c1adc9df31`, path `scripts/actelyo-download/window-branding.ps1` (SHA-256 `f228e8f228e47feb4005ec956debe06f93d148e018c8bbb8a1177bc49becb598`). Keeping it in this checkout avoids a runtime dependency on the raw-content download service.
