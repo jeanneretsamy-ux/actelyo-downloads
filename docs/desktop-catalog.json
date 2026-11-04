@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-04T19:02:27.147Z",
+  "revision": "2026-11-04T19:18:30.195Z",
   "items": [
     {
       "id": "erp",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.8.2",
+      "version": "1.8.4",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
-      "repo": "https://github.com/jeanneretsamy-ux/actelyo-desktop",
+      "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.2/Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.8.2-x64.exe",
-      "bytes": 153968293,
-      "sha256": "dad4952a22729e3943efe86357b8e500b6764f51ae459f2862c8e9d1711fd97a",
-      "note": "Logo Actelyo ERP (vert) sur l’exécutable, l’installateur et les raccourcis. Application 1.8.1 vérifiée, met à jour la 1.8.1 sur place sans toucher aux données."
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.4/Actelyo-ERP-Desktop-Setup-1.8.4-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.8.4-x64.exe",
+      "bytes": 123293014,
+      "sha256": "ff82b2d098af95262359baf9005e2830123e5b354a5eb5f262d356414873cc54",
+      "note": "Logo Actelyo ERP vert vérifié sur la fenêtre native après installation Windows. Conversations : modèles locaux/API, coffre chiffré, import de documents, sources et rédactions précédentes. Les faits du dossier conservent leur provenance et leurs conflits. Autorisation cloud explicite ; modèles et services de routeur à configurer. QA de neuf suites et du parcours installé réussie avec fournisseur HTTP synthétique."
     },
     {
       "id": "law-harness",
