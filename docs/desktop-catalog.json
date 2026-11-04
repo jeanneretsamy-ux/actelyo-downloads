@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-04T01:19:52.048Z",
+  "revision": "2026-11-04T19:02:27.147Z",
   "items": [
     {
       "id": "erp",
@@ -52,31 +52,31 @@
       "id": "rag",
       "name": "Actelyo RAG Desktop",
       "category": "desktop",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Bibliothèque documentaire locale, recherche assistée et préparation de corpus juridiques structurés.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO",
       "sourceZip": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/archive/refs/heads/master.zip",
-      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.5/Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
-      "file": "Actelyo-RAG-Desktop-Setup-1.0.5-x64.exe",
-      "bytes": 490522313,
-      "sha256": "10e15996a12ede0207f5b99ce6e8a75e8d295d35cff81b939f5d5d504b97bfb7",
-      "note": "Logo Actelyo RAG (cyan) intégré. Corrige la collecte de documents via API Desktop : dossier identique au collecteur de l’interface. Installation et upload API réel vérifiés. Aucun corpus ni modèle fourni."
+      "url": "https://github.com/jeanneretsamy-ux/anything-llmACTELYO/releases/download/actelyo-rag-desktop-v1.0.6/Actelyo-RAG-Desktop-Setup-1.0.6-x64.exe",
+      "file": "Actelyo-RAG-Desktop-Setup-1.0.6-x64.exe",
+      "bytes": 490522038,
+      "sha256": "eda6bd99a961e2b48d812985adc7126265eef2bfe7983bb34de1527d83fa2d39",
+      "note": "Logo Actelyo RAG cyan vérifié sur la fenêtre native après installation Windows. Collecte API et conservation du texte testées. Le port Desktop réellement alloué est annoncé aux applications de la suite ; les données locales sont conservées. Aucun corpus ni poids de modèle de rédaction fourni."
     },
     {
       "id": "llm",
       "name": "Actelyo LLM Studio",
       "category": "desktop",
-      "version": "3.0.3",
+      "version": "3.0.4",
       "description": "Studio LLM local Actelyo, catalogue Hugging Face et Agent Projets.",
       "platform": "Windows x64 · CPU",
       "repo": "https://github.com/jeanneretsamy-ux/actelyo-llm-desktop",
       "sourcePrivate": true,
-      "note": "Logo Actelyo LLM Studio (rouge) sur l’exécutable, l’installateur et les raccourcis. Construite depuis les sources 3.0.3 : le test matériel fonctionne avec les modèles à raisonnement (Qwen3…), et la version est la même partout (Windows, application, /health). Met à jour la 3.0.2 sur place sans toucher aux données.",
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.3/Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
-      "file": "Actelyo-LLM-Desktop-Setup-3.0.3-x64.exe",
-      "bytes": 192804085,
-      "sha256": "904290a09bd873d4f57efdbe5c0baa7d673c36bc727a0bd9d2fd9a770429ab8d"
+      "note": "Logo Actelyo LLM Studio rouge vérifié sur l’exécutable, l’installateur et la fenêtre native. Réglages actuels et enregistrement testés après installation. Catalogue proposé limité aux modèles Actelyo ; une fenêtre minimisée est restaurée au second lancement. 41 tests Windows réussis. Les modèles restent à télécharger et charger selon le matériel.",
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-llm-v3.0.4/Actelyo-LLM-Desktop-Setup-3.0.4-x64.exe",
+      "file": "Actelyo-LLM-Desktop-Setup-3.0.4-x64.exe",
+      "bytes": 188576627,
+      "sha256": "ba74f6dea81918dbaf356b50ef4562cd30203877cc0e10da22d86144dcdd74ef"
     },
     {
       "id": "openbousic",
