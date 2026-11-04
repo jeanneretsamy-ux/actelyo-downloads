@@ -4,6 +4,7 @@
   "items": [
     {
       "id": "erp",
+      "installer": "nsis",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
       "version": "1.8.4",

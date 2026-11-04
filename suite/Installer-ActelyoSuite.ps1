@@ -87,7 +87,8 @@ try {
             $spaceNow=@(Get-SuiteSpacePlan @() $remaining $Destination (Join-Path $env:LOCALAPPDATA 'Programs') $suite.headroomGiB)
             if (@($spaceNow | Where-Object {-not $_.ok}).Count) { throw 'Espace devenu insuffisant avant installation. Installation suspendue.' }
             $log=Join-Path ([IO.Path]::GetFullPath($ReportDirectory)) ($item.id+'-install.log')
-            $process=Start-Process -FilePath $download -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/LOG="'+$log+'"')) -WindowStyle Hidden -Wait -PassThru
+            $installerArguments=@(Get-SuiteInstallerArguments $item $log)
+            $process=Start-Process -FilePath $download -ArgumentList $installerArguments -WindowStyle Hidden -Wait -PassThru
             if ($process.ExitCode -ne 0) { throw ('Echec de '+$item.id+' : code '+$process.ExitCode+'. Voir '+$log) }
             $installed=Find-SuiteInstallation $definition (Get-SuiteRegistrations)
             if (-not $installed -or (Compare-SuiteVersion $installed.version $item.version) -lt 0) { throw ('Version installee non confirmee : '+$item.id) }

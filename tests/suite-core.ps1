@@ -13,6 +13,11 @@ Assert ((Compare-SuiteVersion '3.0.3' '3.0.3') -eq 0) 'current version is preser
 Assert ((Compare-SuiteVersion '3.0.4' '3.0.3') -gt 0) 'newer version is never downgraded'
 Reject {Compare-SuiteVersion 'development' '3.0.3'} 'unknown version cannot be silently replaced'
 Assert-SuiteItem $item
+Assert ((@(Get-SuiteInstallerArguments $item 'C:\QA logs\install.log') -join ' ') -match '/VERYSILENT.* /LOG="C:\\QA logs\\install.log"') 'legacy Inno installers retain their silent mode and quoted log path'
+$nsis=$item.PSObject.Copy();$nsis|Add-Member NoteProperty installer 'nsis'
+Assert ((@(Get-SuiteInstallerArguments $nsis 'unused') -join ' ') -ceq '/S') 'NSIS receives its case-sensitive silent switch without Inno options'
+$unknown=$item.PSObject.Copy();$unknown|Add-Member NoteProperty installer 'unknown'
+Reject {Get-SuiteInstallerArguments $unknown 'unused'} 'unknown installer formats are rejected before execution'
 Assert ((Receive-SuiteItem $item $fixture) -eq $file) 'verified installer cache is reused without network'
 [IO.File]::WriteAllText($file,'corrupt existing user file')
 Reject {Receive-SuiteItem $item $fixture} 'corrupt cache is rejected before execution'

@@ -73,6 +73,14 @@ function Get-SuiteSpacePlan($Items, $Definitions, [string]$DownloadDirectory, [s
         [pscustomobject]@{ volume=$root; requiredBytes=$required; freeBytes=$drive.AvailableFreeSpace; ok=($drive.AvailableFreeSpace -ge $required) }
     }
 }
+function Get-SuiteInstallerArguments($Item, [string]$LogPath) {
+    $kind = if ($Item.PSObject.Properties['installer']) { $Item.installer } else { 'inno' }
+    switch ($kind) {
+        'nsis' { return @('/S') }
+        'inno' { return @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',('/LOG="'+$LogPath+'"')) }
+        default { throw ('Type d''installateur non pris en charge : '+$kind) }
+    }
+}
 function Receive-SuiteItem($Item, [string]$Directory, [Security.SecureString]$HuggingFaceToken=$null) {
     Assert-SuiteItem $Item
     if ($HuggingFaceToken -and ([uri]$Item.url).Host -ne 'huggingface.co') { throw 'Authentification reservee a Hugging Face.' }
