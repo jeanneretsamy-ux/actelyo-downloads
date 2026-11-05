@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { activateWindow, captureWindow } from './capture.mjs';
+import { assertActionableControl } from './ui-control.mjs';
 
 const require = createRequire(new URL('./runtime/package.json', import.meta.url));
 const { _electron } = require('playwright-core');
@@ -278,7 +279,7 @@ try {
         }else{
           await instance.page.waitForFunction(()=>document.body?.innerText.trim().length>120 && document.querySelector('button'),undefined,{timeout:60000});
         }
-        await instance.page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:15000});
+        await assertActionableControl(instance.page, id);
       }catch(e){uiError=String(e);diagnostics=await instance.page.evaluate(()=>({visibility:document.visibilityState,title:document.title,buttons:[...document.querySelectorAll('button')].slice(0,25).map(b=>({text:b.innerText,disabled:b.disabled,width:b.getBoundingClientRect().width,height:b.getBoundingClientRect().height,visibility:getComputedStyle(b).visibility}))})).catch(()=>undefined);}
       try { capture=await captureWindow(instance,path.join(out,id+'-ready.png')); }
       catch(e){uiError=[uiError,String(e)].filter(Boolean).join('\n');}
@@ -309,3 +310,4 @@ try {
   fs.writeFileSync(path.join(out,'rapport.html'),`<!doctype html><meta charset="utf-8"><title>QA Suite Actelyo</title><style>body{font:16px Segoe UI;max-width:1000px;margin:40px auto;padding:20px}td,th{padding:12px;text-align:left;border-bottom:1px solid #ddd}pre{white-space:pre-wrap}</style><h1>Suite Actelyo — ${escape(report.status)}</h1><p>${escape(report.scope)}</p><table><tr><th>Contrôle</th><th>Résultat</th><th>Détail</th></tr>${report.steps.map(s=>`<tr><td>${escape(s.id)}</td><td>${escape(s.status)}</td><td><pre>${escape(s.error||JSON.stringify(s.detail,null,2))}</pre></td></tr>`).join('')}</table>`);
   process.exitCode=passed?0:1;
 }
+
