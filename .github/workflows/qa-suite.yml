@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/unified-install-qa, codex/download-branding-qa]
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', 'tests/ui-control.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
   pull_request:
     paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
 permissions:
@@ -41,6 +41,8 @@ jobs:
         run: node scripts/sync-download-catalog.cjs --check
       - name: Restore locked QA dependencies
         run: npm ci --prefix suite/qa/runtime --ignore-scripts --no-audit --no-fund
+      - name: Onboarding controls remain actionable and broken interfaces fail
+        run: node tests/ui-control.mjs
       - name: Download cards stay current when the primary catalogue is unavailable
         env:
           ACTELYO_QA_PORTAL_OUT: suite-proof
@@ -89,3 +91,4 @@ jobs:
             suite-proof/branding/*.png
             suite-proof/branding/*.json
           retention-days: 14
+
