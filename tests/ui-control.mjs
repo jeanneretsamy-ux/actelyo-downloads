@@ -17,9 +17,13 @@ try {
  await assertActionableControl(page,'openbousic');
  assert.equal(await page.evaluate(()=>window.opened),1);
  assert.equal(await page.locator('dialog').isVisible(),false);
- await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('data-testid'));
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.setAttribute('aria-label','Configure a provider'));
  await assertActionableControl(page,'openbousic');
  assert.equal(await page.evaluate(()=>window.opened),2);
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('aria-label'));
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('data-testid'));
+ await assertActionableControl(page,'openbousic');
+ assert.equal(await page.evaluate(()=>window.opened),3);
  await page.getByRole('button',{name:'Add Provider',exact:true}).evaluate(button=>button.onclick=null);
  await assert.rejects(assertActionableControl(page,'openbousic',500));
  await page.setContent('<body>Blank or broken application</body>');
