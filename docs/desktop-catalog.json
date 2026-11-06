@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-06T20:51:01.421Z",
+  "revision": "2026-11-06T21:35:46.330Z",
   "items": [
     {
       "id": "erp",
-      "installer": "nsis",
+      "installer": "inno",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
       "version": "1.8.6-rc.4",
@@ -12,11 +12,12 @@
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.6-rc.4/Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-x64.exe",
-      "bytes": 131125406,
-      "sha256": "8d7ac703e1f614bedfa8b390d3f68d04412b229f32e13d6947e3a6099a7e46ce",
-      "note": "Candidat rc.4 non signé, qualifié sur l’EXE installé : finances, factures/devis/avoirs/provisions, abonnements, temps et rentabilité, AGOA/Word, contrôles société/IFU, conversations et OCR hors ligne. Modèles et clés séparés. Paie : préparation/import externe. Inférence réelle, transmissions fiscales et migrations cloud non qualifiées ; parcours mobile connecté à terminer."
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.6-rc.4-r2/Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-r2-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-r2-x64.exe",
+      "bytes": 163651729,
+      "sha256": "374058444af35dad62df1167c5e96485a0cc658064ce22ad118ba7fe8476d29a",
+      "note": "Installation Inno r2 : corrige le crash NSIS ; contenu applicatif rc.4 inchangé, mise à jour depuis 1.8.2 avec profil, dossier et une seule entrée Windows vérifiés. Candidat rc.4 non signé, qualifié sur l’EXE installé : finances, factures/devis/avoirs/provisions, abonnements, temps et rentabilité, AGOA/Word, contrôles société/IFU, conversations et OCR hors ligne. Modèles et clés séparés. Paie : préparation/import externe. Inférence réelle, transmissions fiscales et migrations cloud non qualifiées ; parcours mobile connecté à terminer.",
+      "packagingRevision": 2
     },
     {
       "id": "law-harness",
