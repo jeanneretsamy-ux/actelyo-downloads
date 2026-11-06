@@ -11,6 +11,12 @@ $file=Join-Path $fixture 'fixture.exe'
 $item=[pscustomobject]@{id='llm';name='Fixture';file='fixture.exe';version='9999.0.0';category='desktop';bytes=(Get-Item $file).Length;sha256=(Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant();url='https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/test/fixture.exe'}
 Assert ((Compare-SuiteVersion '3.0.3' '3.0.3') -eq 0) 'current version is preserved'
 Assert ((Compare-SuiteVersion '3.0.4' '3.0.3') -gt 0) 'newer version is never downgraded'
+Assert ((Compare-SuiteVersion '1.8.6-rc.4' '1.8.6-rc.4') -eq 0) 'installed release candidate is recognized after NSIS installation'
+Assert ((Compare-SuiteVersion '1.8.6' '1.8.6-rc.4') -gt 0) 'stable installation is never downgraded to its candidate'
+Assert ((Compare-SuiteVersion '1.8.6-rc.10' '1.8.6-rc.4') -gt 0) 'candidate numeric identifiers compare numerically'
+Assert ((Compare-SuiteVersion '1.8.6-rc.4' '1.8.5') -gt 0) 'newer core candidate follows the previous stable version'
+Assert ((Compare-SuiteVersion '1.8.6-rc.4' '1.8.6-RC.4') -gt 0) 'prerelease labels retain case-sensitive semantic ordering'
+Reject {Compare-SuiteVersion '1.8.6-rc.04' '1.8.6-rc.4'} 'ambiguous candidate identifiers are refused'
 Reject {Compare-SuiteVersion 'development' '3.0.3'} 'unknown version cannot be silently replaced'
 Assert-SuiteItem $item
 Assert ((@(Get-SuiteInstallerArguments $item 'C:\QA logs\install.log') -join ' ') -match '/VERYSILENT.* /LOG="C:\\QA logs\\install.log"') 'legacy Inno installers retain their silent mode and quoted log path'
