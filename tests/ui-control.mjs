@@ -12,12 +12,18 @@ try {
   <dialog><button data-testid="provider-modal-next">Next</button><button onclick="document.querySelector('dialog').close()">Cancel</button></dialog>`}));
  await page.goto('http://127.0.0.1:19999/onboarding');
  await assert.rejects(page.locator('button:visible:not(:disabled)').first().click({trial:true,timeout:500}));
- await assertActionableControl(page,'openbousic',2000);
+ // Exercise the same bounded action timeout as the installed-suite verifier.
+ // A cold hosted Chrome can take more than two seconds to produce stable frames.
+ await assertActionableControl(page,'openbousic');
  assert.equal(await page.evaluate(()=>window.opened),1);
  assert.equal(await page.locator('dialog').isVisible(),false);
- await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('data-testid'));
- await assertActionableControl(page,'openbousic',2000);
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.setAttribute('aria-label','Configure a provider'));
+ await assertActionableControl(page,'openbousic');
  assert.equal(await page.evaluate(()=>window.opened),2);
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('aria-label'));
+ await page.getByTestId('onboarding-add-provider-button').evaluate(button=>button.removeAttribute('data-testid'));
+ await assertActionableControl(page,'openbousic');
+ assert.equal(await page.evaluate(()=>window.opened),3);
  await page.getByRole('button',{name:'Add Provider',exact:true}).evaluate(button=>button.onclick=null);
  await assert.rejects(assertActionableControl(page,'openbousic',500));
  await page.setContent('<body>Blank or broken application</body>');

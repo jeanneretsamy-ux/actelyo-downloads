@@ -39,3 +39,5 @@ Fermer les applications avant de les mettre à jour. Le kit ne redémarre pas l�
 Le diagnostic utilisateur ne télécharge aucun modèle tiers. La QA interne du dépôt teste séparément génération, embeddings, recherches ERP/RAG, RAG-Anything, références transférées à Law Harness et fournisseur OpenBousic. Ses modèles publics de référence sont définis hors du ZIP utilisateur. Ce profil exige explicitement `-IncludeTestModels -TestModelsCatalog <fichier>` ; il ne nécessite aucune clé privée.
 
 La QA des applications ne certifie pas automatiquement l’inférence des modèles Actelyo, la pertinence juridique, le contrôle du navigateur ou toutes les fonctions. Les références littérales contrôlées par Law Harness conservent une revue humaine pour leur portée juridique.
+
+Le kit 1.2.0 contient le candidat ERP 1.8.6-rc.4 et Law Harness 2026.11.9. Les modèles, clés API et services externes restent à configurer. La paie prépare ou importe des résultats externes ; aucune transmission fiscale ni migration cloud n’est réalisée par le kit.

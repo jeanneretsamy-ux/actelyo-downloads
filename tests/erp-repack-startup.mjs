@@ -10,7 +10,7 @@ for (const key of Object.keys(env)) if (/TOKEN|SECRET|PASSWORD|API.?KEY|^GH_|^GI
 const app = await _electron.launch({ executablePath: process.env.ERP_REPACK_EXE, args: ['--data-dir=' + profile], env, timeout: 120000 });
 try {
   const identity = await app.evaluate(({ app }) => ({ version: app.getVersion(), userData: app.getPath('userData') }));
-  assert.equal(identity.version, '1.8.4');
+  assert.equal(identity.version, '1.8.6-rc.4');
   assert.equal(path.resolve(identity.userData).toLowerCase(), profile.toLowerCase());
   const page = await app.firstWindow(); page.setDefaultTimeout(30000);
   await page.getByRole('button', { name: 'Continuer sans compte' }).click();

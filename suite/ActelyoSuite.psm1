@@ -58,9 +58,29 @@ function Find-SuiteInstallation($Definition, $Registrations) {
     [pscustomobject]@{ id=$Definition.id; version=$entry.DisplayVersion; directory=$directory; executable=$exe }
 }
 function Compare-SuiteVersion([string]$Installed, [string]$Requested) {
-    $a = $null; $b = $null
-    if (-not [version]::TryParse($Installed,[ref]$a) -or -not [version]::TryParse($Requested,[ref]$b)) { throw 'Version non comparable, intervention manuelle requise.' }
-    $a.CompareTo($b)
+    $parsed = @()
+    foreach ($text in @($Installed,$Requested)) {
+        if ($text -notmatch '^(\d+(?:\.\d+){1,3})(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$') { throw 'Version non comparable, intervention manuelle requise.' }
+        $core=$Matches[1];$pre=if($Matches[2]){$Matches[2]}else{''};$numeric=$null
+        if(-not [version]::TryParse($core,[ref]$numeric)){throw 'Version non comparable, intervention manuelle requise.'}
+        foreach($identifier in @($pre -split '\.')){if($identifier -match '^\d+$' -and $identifier.Length -gt 1 -and $identifier.StartsWith('0')){throw 'Prerelease numerique invalide.'}}
+        $parsed+=@{core=$numeric;pre=$pre}
+    }
+    $order=$parsed[0].core.CompareTo($parsed[1].core)
+    if($order -ne 0){return $order}
+    if($parsed[0].pre -ceq $parsed[1].pre){return 0}
+    if(-not $parsed[0].pre){return 1}
+    if(-not $parsed[1].pre){return -1}
+    $a=@($parsed[0].pre -split '\.');$b=@($parsed[1].pre -split '\.')
+    for($i=0;$i -lt [math]::Min($a.Count,$b.Count);$i++){
+        $aNumeric=$a[$i] -match '^\d+$';$bNumeric=$b[$i] -match '^\d+$'
+        if($aNumeric -and $bNumeric){
+            $order=$a[$i].Length.CompareTo($b[$i].Length)
+            if($order -eq 0){$order=[string]::CompareOrdinal($a[$i],$b[$i])}
+        }elseif($aNumeric){$order=-1}elseif($bNumeric){$order=1}else{$order=[string]::CompareOrdinal($a[$i],$b[$i])}
+        if($order -ne 0){return $order}
+    }
+    return $a.Count.CompareTo($b.Count)
 }
 function Get-SuiteSpacePlan($Items, $Definitions, [string]$DownloadDirectory, [string]$InstallDirectory, [double]$HeadroomGiB) {
     $volumes = @{}
