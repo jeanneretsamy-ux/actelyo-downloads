@@ -4,7 +4,7 @@
 
 ## Kit commun Windows
 
-[Télécharger Actelyo Suite 1.1.0](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.1.0/Actelyo-Suite-1.1.0-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Le ZIP « Code » est destiné aux développeurs.
+[Télécharger Actelyo Suite 1.2.0](https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.2.0/Actelyo-Suite-1.2.0-Kit.zip), extraire le ZIP puis ouvrir **Installer.cmd**. Le ZIP « Code » est destiné aux développeurs.
 
 Le kit installe LLM Studio, ERP, RAG Desktop, RAG-Anything, Law Harness et OpenBousic. Il contrôle les SHA-256, l’espace et les versions, puis vérifie le démarrage et les cinq interfaces dans des profils séparés. Prévoir environ **35 Go libres** sur un poste Windows x64 neuf, plus les modèles choisis ; le plan affiche le besoin par disque.
 
@@ -21,3 +21,5 @@ La CI continue de tester les six installations, les échanges réels et les 20 i
 Pour maintenir le catalogue, modifier `catalog.json`, puis exécuter `node scripts/sync-download-catalog.cjs --write`. Inclure `docs/desktop-catalog.json` dans le même changement. La QA vérifie que les modèles étrangers d’un ancien catalogue ne sont pas proposés et que les modèles privés ne déclenchent pas de téléchargement anonyme.
 
 Actelyo LLM utilise llama.cpp. Son connecteur LM Studio emploie le SDK ouvert ; l’interface propriétaire LM Studio n’est pas incluse. Docker fournit des services séparés des interfaces Windows.
+
+Le kit 1.2.0 contient le candidat ERP 1.8.6-rc.4 et Law Harness 2026.11.9. Les modèles, clés API et services externes restent à configurer. La paie prépare ou importe des résultats externes ; aucune transmission fiscale ni migration cloud n’est réalisée par le kit.

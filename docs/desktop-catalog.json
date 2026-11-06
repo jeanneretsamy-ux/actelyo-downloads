@@ -1,54 +1,53 @@
 {
   "schemaVersion": 1,
-  "revision": "2026-11-04T21:55:20.791Z",
+  "revision": "2026-11-06T20:51:01.421Z",
   "items": [
     {
       "id": "erp",
-      "installer": "inno",
+      "installer": "nsis",
       "name": "Actelyo ERP Desktop",
       "category": "desktop",
-      "version": "1.8.4",
+      "version": "1.8.6-rc.4",
       "description": "L’ERP avec son espace local, les skills, les ZIP de rédaction et le RAG du poste.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/ACTELYO-ERP",
       "sourcePrivate": true,
-      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.4-r2/Actelyo-ERP-Desktop-Setup-1.8.4-r2-x64.exe",
-      "file": "Actelyo-ERP-Desktop-Setup-1.8.4-r2-x64.exe",
-      "bytes": 154233176,
-      "sha256": "73133c650511043ad7b7238fb61ed18f2de83002146c21c3f325fbedafbcbddc",
-      "note": "Révision d’installation r2 : mise à jour depuis ERP 1.8.2 vérifiée avec conservation du dossier, du profil et d’une seule entrée Windows. Contenu applicatif 1.8.4 inchangé. Modèles locaux/API, coffre chiffré, documents, sources et rédactions précédentes ; autorisation cloud explicite. Logo vert vérifié sur la fenêtre native. Les clés et services de routeur restent à configurer.",
-      "packagingRevision": 2
+      "url": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-erp-v1.8.6-rc.4/Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-x64.exe",
+      "file": "Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-x64.exe",
+      "bytes": 131125406,
+      "sha256": "8d7ac703e1f614bedfa8b390d3f68d04412b229f32e13d6947e3a6099a7e46ce",
+      "note": "Candidat rc.4 non signé, qualifié sur l’EXE installé : finances, factures/devis/avoirs/provisions, abonnements, temps et rentabilité, AGOA/Word, contrôles société/IFU, conversations et OCR hors ligne. Modèles et clés séparés. Paie : préparation/import externe. Inférence réelle, transmissions fiscales et migrations cloud non qualifiées ; parcours mobile connecté à terminer."
     },
     {
       "id": "law-harness",
       "name": "Actelyo Law Harness Desktop",
       "category": "desktop",
-      "version": "2026.11.7",
+      "version": "2026.11.9",
       "description": "Atelier de création de plugins, cabinet juridique et recherche sourcée.",
       "platform": "Windows x64",
       "repo": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo",
-      "note": "Choix Actelyo, OpenRouter et routeurs compatibles à configurer ; connexion au port publié par Actelyo RAG. Logo violet, version de l’EXE, installation et navigation vérifiés sur Windows. Modèle requis séparément. La QA ne certifie pas la qualité juridique, la génération par modèle ni un accès Lexis authentifié.",
-      "file": "Actelyo-Law-Harness-Setup-2026.11.7-x64.exe",
-      "bytes": 2194999850,
-      "sha256": "581a1b79e4a74d701cbd95cdda5ca739dc14d17e90fbea9838e85491844c3bbd",
+      "note": "Installation et navigation Windows, logo violet et sources vérifiés. Cabinet financier via connexion explicite au moteur ERP, atelier de plugins et citations liées aux sources. Modèles et clés séparés ; qualité rédactionnelle réelle, transmissions fiscales et parité mobile complète non qualifiées.",
+      "file": "Actelyo-Law-Harness-Setup-2026.11.9-x64.exe",
+      "bytes": 2205022588,
+      "sha256": "a1391b2b8c345ce63c85d6ef81b20fe24a74fe8d93d482136d2c653f1e768a6d",
       "parts": [
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.7/Actelyo-Law-Harness-Setup-2026.11.7-x64.exe.part01",
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.9/Actelyo-Law-Harness-Setup-2026.11.9-x64.exe.part01",
           "bytes": 1000000000,
-          "sha256": "1f20432f4470b8f1d269d189ce6f97e34c5967712cd82fe509659f9d0d25cff8"
+          "sha256": "dfae6b6ff423ecedeb7ca8f0614b1034a2e4c7f5e8c866304beabea8865256a7"
         },
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.7/Actelyo-Law-Harness-Setup-2026.11.7-x64.exe.part02",
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.9/Actelyo-Law-Harness-Setup-2026.11.9-x64.exe.part02",
           "bytes": 1000000000,
-          "sha256": "281edd58486ddfb6f2e4a62112af7bd0d1c990845501b5a54a9a9be52ac33016"
+          "sha256": "d3c0d7bfdf791babd9815ef363e72ba072227dab57005d443e12083658f59393"
         },
         {
-          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.7/Actelyo-Law-Harness-Setup-2026.11.7-x64.exe.part03",
-          "bytes": 194999850,
-          "sha256": "a6f4d22546fb1ca8f02bcb79ad7f31d74ccc2034b81bcc3a332c5393f5644e89"
+          "url": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.9/Actelyo-Law-Harness-Setup-2026.11.9-x64.exe.part03",
+          "bytes": 205022588,
+          "sha256": "e0cbb57008c7f219e769db2a0cf279dfc072c2ec4538e1bc70fcfe3f4aafcc1f"
         }
       ],
-      "kitUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.7/Actelyo-Law-Harness-2026.11.7-Kit.zip"
+      "kitUrl": "https://github.com/jeanneretsamy-ux/hermes-agentactelyo/releases/download/desktop-law-v2026.11.9/Actelyo-Law-Harness-2026.11.9-Kit.zip"
     },
     {
       "id": "rag",
@@ -262,5 +261,5 @@
     }
   ],
   "dockerUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/desktop-docker-v1.1/Actelyo-Docker-Kit.zip",
-  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.1.1/Actelyo-Suite-1.1.1-Kit.zip"
+  "kitUrl": "https://github.com/jeanneretsamy-ux/actelyo-downloads/releases/download/actelyo-suite-v1.2.0/Actelyo-Suite-1.2.0-Kit.zip"
 }
