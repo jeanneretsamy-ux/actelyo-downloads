@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/unified-install-qa, codex/download-branding-qa]
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', 'tests/ui-control.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/installed-payloads.cjs', 'tests/download-portal.mjs', 'tests/ui-control.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
   pull_request:
-    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
+    paths: ['suite/**', 'scripts/build-suite-kit.ps1', 'scripts/sync-download-catalog.cjs', 'tests/suite-core.ps1', 'tests/actelyo-models.ps1', 'tests/qa-models.json', 'tests/installed-branding.ps1', 'tests/installed-payloads.cjs', 'tests/download-portal.mjs', '.github/branding/**', '.github/workflows/qa-suite.yml', 'catalog.json', 'docs/desktop-catalog.json', 'docs/index.html']
 permissions:
   contents: read
 concurrency:
@@ -51,6 +51,8 @@ jobs:
         run: |
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/installed-branding.ps1 -SelfTest
           if ($LASTEXITCODE) { throw 'Native icon comparator checks failed' }
+      - name: Packaged content scanner detects synthetic secrets
+        run: node tests/installed-payloads.cjs --self-test
       - name: Build self-contained diagnostic kit
         run: ./scripts/build-suite-kit.ps1
       - name: Install every catalogued application and test real interoperability
@@ -64,6 +66,8 @@ jobs:
         run: |
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/installed-branding.ps1 -InstalledJson suite-proof/installed.json
           if ($LASTEXITCODE) { throw 'Native installer or shortcut branding did not pass' }
+      - name: Inspect first-party packaged content for private leftovers
+        run: node tests/installed-payloads.cjs suite-proof/installed.json
       - name: User startup verification needs no external model
         run: |
           Copy-Item catalog.json suite/catalog.json
@@ -84,6 +88,7 @@ jobs:
             suite-proof/qa.json
             suite-proof/rapport.html
             suite-proof/portal-fallback.json
+            suite-proof/payload-cleanliness.json
             suite-proof/*.png
             suite-proof/*-install.log
             suite-proof/*-installer-diagnostic.json
