@@ -4,8 +4,8 @@
 [Setup]
 AppId={{798C7D34-BB9C-47E6-B12D-A621C9D36B73}
 AppName=Actelyo ERP Desktop
-AppVersion=1.8.4
-VersionInfoVersion=1.8.4
+AppVersion=1.8.6-rc.4
+VersionInfoVersion=1.8.6.0
 VersionInfoProductName=Actelyo ERP Desktop
 AppPublisher=Actelyo
 DefaultDirName={localappdata}\Programs\Actelyo ERP Desktop
@@ -14,7 +14,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#OutputDir}
-OutputBaseFilename=Actelyo-ERP-Desktop-Setup-1.8.4-r2-x64
+OutputBaseFilename=Actelyo-ERP-Desktop-Setup-1.8.6-rc.4-r2-x64
 SetupIconFile={#AppIcon}
 UninstallDisplayIcon={app}\Actelyo ERP.exe
 Compression=lzma2/fast
